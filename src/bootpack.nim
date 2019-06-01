@@ -53,6 +53,10 @@ proc load_gdtr(limit, address: int) {.importc.}
 proc load_idtr(limit, address: int) {.importc.}
 
 # </low level functions>
+# <util>
+proc `+`[T](ptrobj: ptr T, idx: uint): ptr T =
+  cast[ptr T](cast[uint](ptrobj) + idx)
+# </util>
 
 # <palette>
 const table_rgb: array[16*3, uint8] = [
@@ -98,10 +102,10 @@ proc set_palette(head, tail: int, rgb: array[16*3, uint8]) =
   io_out8(0x03c8, cast[uint16](head))
   var rgb_index = 0
   for i in head .. tail:
-    io_out8(0x03c9, cast[uint16](rgb[rgb_index] shr 2))
-    io_out8(0x03c9, cast[uint16](rgb[rgb_index + 1] shr 2))
-    io_out8(0x03c9, cast[uint16](rgb[rgb_index + 2] shr 2))
+    for j in 0 ..< 3:
+      io_out8(0x03c9, cast[uint16](rgb[rgb_index + j] shr 2))
     rgb_index = rgb_index + 3
+
   io_store_eflags(eflags)
 
 proc init_palette() =
@@ -133,20 +137,15 @@ proc boxfill8(binfo: BootInfo, color: Color, x0, y0, x1, y1: uint) =
 proc putfont8(binfo: BootInfo, x, y: uint, color: Color, font: array[16, int8]) =
   for i in 0'u ..< 16:
     let d = font[i]
-    if (d and 0x80) != 0: binfo[x + 0, y + i] = color
-    if (d and 0x40) != 0: binfo[x + 1, y + i] = color
-    if (d and 0x20) != 0: binfo[x + 2, y + i] = color
-    if (d and 0x10) != 0: binfo[x + 3, y + i] = color
-    if (d and 0x08) != 0: binfo[x + 4, y + i] = color
-    if (d and 0x04) != 0: binfo[x + 5, y + i] = color
-    if (d and 0x02) != 0: binfo[x + 6, y + i] = color
-    if (d and 0x01) != 0: binfo[x + 7, y + i] = color
+    var mask = 0x80
+    for j in 0'u ..< 8:
+      if(d and mask) != 0: binfo[x + j, y + i] = color
+      mask = mask shr 1
 
-proc putblock8_8(binfo: BootInfo, pxsize, pysize, px0, py0: uint, buf: ptr cuchar, bxsize: int) =
-  for x in 0 ..< bxsize:
-    for y in 0 ..< bxsize:
-      let c = cast[Color](cast[ptr cuchar]((cast[int](buf) + x * bxsize + y))[])
-      binfo[px0 + cast[uint](x), py0 + cast[uint](y)] = c
+proc putblock8_8(binfo: BootInfo, pxsize, pysize, px0, py0: uint, buf: ptr cuchar, bxsize: uint) =
+  for x in 0'u ..< bxsize:
+    for y in 0'u ..< bxsize:
+      binfo[px0 + x, py0 + y] = cast[Color]((buf + (x * bxsize + y))[])
 
 proc init_screen(binfo: BootInfo) =
   binfo.boxfill8(Color.dark_grey     , 0                , 0               , binfo.scrnx - 1 , binfo.scrny - 29)
@@ -186,7 +185,7 @@ const cursor: array[16, string] = [
   "*ooooo*.........",
   "*oo*o*..........",
   "*o**oo*.........",
-  "**..*oo*........",
+  "**..*o*.........",
   ".....**.........",
   "................",
   "................",
@@ -194,7 +193,7 @@ const cursor: array[16, string] = [
 ]
 
 {.emit: """
-static unsigned char mouse[16][8] = {};
+static unsigned char mouse[16][16] = {};
 unsigned char* getmouse() { return mouse; }
 """.}
 proc getmouse(): ptr cuchar {.importc.}
@@ -203,11 +202,11 @@ proc init_mouse_cursor8(backgroundcolor: Color) =
   for x in 0 ..< 16:
     for y in 0 ..< 16:
       if cursor[x][y] == '*':
-        cast[ptr cuchar](cast[uint](mouse) + cast[uint](x + y*16))[] = cast[cuchar](Color.white)
+        (mouse + cast[uint](x + y*16))[] = cast[cuchar](Color.white)
       elif cursor[x][y] == 'o':
-        cast[ptr cuchar](cast[uint](mouse) + cast[uint](x + y*16))[] = cast[cuchar](Color.black)
+        (mouse + cast[uint](x + y*16))[] = cast[cuchar](Color.black)
       elif cursor[x][y] == '.':
-        cast[ptr cuchar](cast[uint](mouse) + cast[uint](x + y*16))[] = cast[cuchar](backgroundcolor)
+        (mouse + cast[uint](x + y*16))[] = cast[cuchar](backgroundcolor)
 
 # </mouse>
 # <gdt/idt>
@@ -254,13 +253,13 @@ proc init_gdtidt() =
   gdt = cast[ptr SegmentDescripter](0x00270000)
   idt = cast[ptr GateDescripter](0x0026f800)
   for i in 0'u ..< 8192:
-    set_segmdesc(cast[ptr SegmentDescripter](cast[uint](gdt) + i), 0, 0, 0)
-  set_segmdesc(cast[ptr SegmentDescripter](cast[uint](gdt) + 1'u), 0xffffffff'u, 0x00000000, 0x4092)
-  set_segmdesc(cast[ptr SegmentDescripter](cast[uint](gdt) + 2'u), 0x0007ffff'u, 0x00280000, 0x409a)
+    set_segmdesc(gdt + i, 0, 0, 0)
+  set_segmdesc(gdt + 1'u, 0xffffffff'u, 0x00000000, 0x4092)
+  set_segmdesc(gdt + 2'u, 0x0007ffff'u, 0x00280000, 0x409a)
   load_gdtr(0xffff, 0x00270000)
 
   for i in 0'u ..< 256:
-    set_gatedisc(cast[ptr GateDescripter](cast[uint](idt) + i), 0, 0, 0)
+    set_gatedisc(idt + i, 0, 0, 0)
   load_idtr(0x7ff, 0x0026f800)
 
 # </gdt/idt>
@@ -276,7 +275,7 @@ proc MikanMain() {.exportc.} =
   binfo[].putfont8_asc(9, 9, Color.white, "ABC 123")
   binfo[].putfont8_asc(8, 8, Color.black, "ABC 123")
 
-  binfo[].putblock8_8(16, 16, 100, 100, mouse, 16)
+  binfo[].putblock8_8(16, 16, 100, 100, mouse, 16'u)
 
   while true:
     io_hlt()
