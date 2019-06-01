@@ -1,8 +1,5 @@
 ; mikan-os
 
-; bits 32
-; .text
-; .code32
 BOTPAK equ 0x00280000                   ; where bootpack loaded
 DSKCAC equ 0x00100000                   ; place of disk cache
 DSKCAC0 equ 0x00008000                  ; place of disk cache (real mode)
