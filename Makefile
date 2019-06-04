@@ -5,17 +5,17 @@ default:
 util/hankaku.nim: util/hankaku.txt Makefile
 	nim c -r util/hankaku2nim.nim
 
-build/ipl.bin: src/ipl.asm Makefile
-	nasm -f bin src/ipl.asm -o build/ipl.bin -l build/ipl.lst -g
+build/ipl.bin: src/asm/ipl.asm Makefile
+	nasm -f bin src/asm/ipl.asm -o build/ipl.bin -l build/ipl.lst -g
 
-build/asmhead.bin: src/asmhead.asm Makefile
-	nasm -f bin src/asmhead.asm -o build/asmhead.bin -l build/asmhead.lst -g
+build/asmhead.bin: src/asm/asmhead.asm Makefile
+	nasm -f bin src/asm/asmhead.asm -o build/asmhead.bin -l build/asmhead.lst -g
 
-build/nasmfunc.o: src/nasmfunc.asm Makefile
-	nasm -f elf src/nasmfunc.asm -o build/nasmfunc.o -l build/nasmfunc.lst -g
+build/nasmfunc.o: src/asm/nasmfunc.asm Makefile
+	nasm -f elf src/asm/nasmfunc.asm -o build/nasmfunc.o -l build/nasmfunc.lst -g
 
-build/bootpack.bin: src/bootpack.nim util/hankaku.nim src/bootpack.nim.cfg build/nasmfunc.o Makefile
-	nim c src/bootpack.nim
+build/bootpack.bin: src/nim/*.nim util/hankaku.nim src/nim/bootpack.nim.cfg build/nasmfunc.o Makefile
+	nim c src/nim/bootpack.nim
 	i686-linux-gnu-ld -m elf_i386 -e MikanMain -o build/bootpack.bin -T src/mikan.ld build/srccache/bootpack.c.o build/nasmfunc.o build/srccache/stdlib_system.c.o
 
 build/mikan.sys: build/asmhead.bin build/bootpack.bin Makefile

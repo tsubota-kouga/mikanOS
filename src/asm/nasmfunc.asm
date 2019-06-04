@@ -45,14 +45,13 @@ io_store_eflags:
     ret
 
 load_gdtr:
-        mov ax, [esp+4]
-        mov [esp+6], ax
-        lgdt [esp+6]
-        ret
+    mov ax, [esp+4]
+    mov [esp+6], ax
+    lgdt [esp+6]
+    ret
 
 load_idtr:
-        mov ax, [esp+4]
-        mov [esp+6], ax
-        lidt [esp+6]
-        ret
-
+    mov ax, [esp+4]
+    mov [esp+6], ax
+    lidt [esp+6]
+    ret
