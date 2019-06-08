@@ -20,7 +20,7 @@ proc MikanMain() {.exportc.} =
   init_palette()
   binfo[].init_screen()
   init_mouse_cursor8(Color.dark_grey)
-  binfo[].putblock8_8(16, 16, 100, 100, mouse, 16)
+  binfo[].putblock8_8(16, 16, 100, 100, mouse)
 
   io_out8(PIC0_IMR, 0xf9)
   io_out8(PIC1_IMR, 0xef)

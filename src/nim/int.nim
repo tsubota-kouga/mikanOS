@@ -13,6 +13,8 @@ const
   PIC1_ICW3 = 0x00a1
   PIC1_ICW4 = 0x00a1
 
+  PORT_KEYDAT = 0x0060
+
 proc init_pic() =
   io_out8(PIC0_IMR, 0xff)  # prohibit interrupt
   io_out8(PIC1_IMR, 0xff)  # prohibit interrupt
@@ -31,8 +33,13 @@ proc init_pic() =
   io_out8(PIC1_IMR, 0xff)  # prohibit all interrupt
 
 proc inthandler21(esp: ptr cint) {.exportc.} =
+  io_out8(PIC0_OCW2, 0x61)
+  # let data = "ABC"
+  var data = io_in8(PORT_KEYDAT)
   binfo[].boxfill8(Color.black, 0, 0, 32 * 8 - 1, 15)
-  binfo[].putfont8_asc(0, 0, Color.white, "INT 21 (IRQ-12) : PS/2 keyboard")
+  var cstr: cstring = "0000"  # size: 4
+  cstr.addr.num2hexstr(data)
+  binfo[].putfont8_asc(0, 0, Color.white, cstr)
   while true:
     io_hlt()
 

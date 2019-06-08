@@ -30,10 +30,10 @@ proc putfont8(binfo: BootInfo, x, y: int, color: Color, font: array[16, int8]) =
       if(d and mask) != 0: binfo[x + j, y + i] = color
       mask = mask shr 1
 
-proc putblock8_8(binfo: BootInfo, pxsize, pysize, px0, py0: int, buf: ptr cuchar, bxsize: int) =
-  for x in 0 ..< bxsize:
-    for y in 0 ..< bxsize:
-      binfo[px0 + x, py0 + y] = cast[Color]((buf + (x * bxsize + y))[])
+proc putblock8_8(binfo: BootInfo, pxsize, pysize, px0, py0: int, buf: array[16, array[16, cuchar]]) =
+  for x in 0 ..< len(buf):
+    for y in 0 ..< len(buf[x]):
+      binfo[px0 + x, py0 + y] = cast[Color](buf[y][x])
 
 proc init_screen(binfo: BootInfo) =
   binfo.boxfill8(Color.dark_grey     , 0                , 0               , binfo.scrnx - 1 , binfo.scrny - 29)
@@ -53,11 +53,14 @@ proc init_screen(binfo: BootInfo) =
   binfo.boxfill8(Color.white         , binfo.scrnx - 47 , binfo.scrny - 3 , binfo.scrnx - 4 , binfo.scrny - 3 )
   binfo.boxfill8(Color.white         , binfo.scrnx - 3  , binfo.scrny - 24, binfo.scrnx - 3 , binfo.scrny - 3 )
 
-proc putfont8_asc(binfo: BootInfo, x, y: int, color: Color, str: string) {.noSideEffect.} =
+proc putfont8_asc(binfo: BootInfo, x, y: int, color: Color, str: string or cstring) {.noSideEffect.} =
   var caret = x
   for c in str:
     binfo.putfont8(caret, y, color, fonts[ord(c)])
     caret = caret + 8
+
+proc putfont8_asc(binfo: BootInfo, x, y: int, color: Color, ch: char) {.noSideEffect.} =
+  binfo.putfont8(x, y, color, fonts[ord(ch)])
 
 const cursor: array[16, string] = [
   "*...............",
@@ -80,17 +83,16 @@ const cursor: array[16, string] = [
 
 {.emit: """
 static unsigned char mouse[16][16] = {};
-unsigned char* getmouse() { return mouse; }
 """.}
-proc getmouse(): ptr cuchar {.importc.}
-let mouse: ptr cuchar = getmouse()
+var mouse {.importc.}: array[16, array[16, cuchar]]
+
 proc init_mouse_cursor8(backgroundcolor: Color) =
   for x in 0 ..< 16:
     for y in 0 ..< 16:
       if cursor[x][y] == '*':
-        (mouse + cast[int](x + y*16))[] = cast[cuchar](Color.white)
+        mouse[x][y] = cast[cuchar](Color.white)
       elif cursor[x][y] == 'o':
-        (mouse + cast[int](x + y*16))[] = cast[cuchar](Color.black)
+        mouse[x][y] = cast[cuchar](Color.black)
       elif cursor[x][y] == '.':
-        (mouse + cast[int](x + y*16))[] = cast[cuchar](backgroundcolor)
+        mouse[x][y] = cast[cuchar](backgroundcolor)
 
