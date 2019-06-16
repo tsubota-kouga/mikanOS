@@ -1,8 +1,8 @@
 
-proc `+`[T](ptrobj: ptr T, idx: int): ptr T =
-  cast[ptr T](cast[int](ptrobj) + idx * sizeof(T))
+proc `+`*[T: untyped, U: int or int8 or cint](ptrobj: ptr T, idx: U): ptr T =
+  cast[ptr T](cast[U](ptrobj) + idx * sizeof(T))
 
-proc num2hexstr[T: int or int8](cstr: ptr cstring, num: T) =
+proc num2hexstr*[T: int or int8 or cint](cstr: var cstring, num: T) =
   var num = num
   var cnt = 0
   while num != 0:

@@ -1,21 +1,14 @@
+import fifo
+import low_layer
+import constant
 
-const
-  PIC0_ICW1 = 0x0020
-  PIC0_OCW2 = 0x0020
-  PIC0_IMR = 0x0021
-  PIC0_ICW2 = 0x0021
-  PIC0_ICW3 = 0x0021
-  PIC0_ICW4 = 0x0021
-  PIC1_ICW1 = 0x00a0
-  PIC1_OCW2 = 0x00a0
-  PIC1_IMR = 0x00a1
-  PIC1_ICW2 = 0x00a1
-  PIC1_ICW3 = 0x00a1
-  PIC1_ICW4 = 0x00a1
+var keyfifo*: FIFO
+var keybuf*: array[32, cuchar]
 
-  PORT_KEYDAT = 0x0060
+var mousefifo*: FIFO
+var mousebuf*: array[128, cuchar]
 
-proc init_pic() =
+proc init_pic*() =
   io_out8(PIC0_IMR, 0xff)  # prohibit interrupt
   io_out8(PIC1_IMR, 0xff)  # prohibit interrupt
 
@@ -34,20 +27,14 @@ proc init_pic() =
 
 proc inthandler21(esp: ptr cint) {.exportc.} =
   io_out8(PIC0_OCW2, 0x61)
-  # let data = "ABC"
-  var data = io_in8(PORT_KEYDAT)
-  binfo[].boxfill8(Color.black, 0, 0, 32 * 8 - 1, 15)
-  var cstr: cstring = "0000"  # size: 4
-  cstr.addr.num2hexstr(data)
-  binfo[].putfont8_asc(0, 0, Color.white, cstr)
-  while true:
-    io_hlt()
+  let data = cast[cuchar](io_in8(PORT_KEYDAT))
+  keyfifo.put(data)
 
 proc inthandler2c(esp: ptr cint) {.exportc.} =
-  binfo[].boxfill8(Color.black, 0, 0, 32 * 8 - 1, 15)
-  binfo[].putfont8_asc(0, 0, Color.white, "INT 2C (IRQ-12) : PS/2 mouse")
-  while true:
-    io_hlt()
+  io_out8(PIC1_OCW2, 0x64)
+  io_out8(PIC0_OCW2, 0x62)
+  let data = cast[cuchar](io_in8(PORT_KEYDAT))
+  mousefifo.put(data)
 
 proc inthandler27(esp: ptr cint) {.exportc.} =
   io_out8(PIC0_OCW2, 0x67)
