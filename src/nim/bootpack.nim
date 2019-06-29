@@ -64,7 +64,9 @@ proc MikanMain() {.exportc.} =
       elif mousefifo.status != 0:  # for mouse
         let data = mousefifo.get
         io_sti()
-        binfo.boxfill8(Color.dark_grey, mouse.x, mouse.y, mouse.x + 15, mouse.y + 15)
+        let
+          mx = mouse.x
+          my = mouse.y
         if mouse.decode(cast[cuchar](data)):
           binfo.boxfill8(Color.black, 0, 32, 8*4 - 1, 48)
           case mouse.button:
@@ -84,6 +86,7 @@ proc MikanMain() {.exportc.} =
             mouse.y = 0
           elif cast[int](binfo.scrny) - 16 < mouse.y:
             mouse.y = cast[int](binfo.scrny) - 16
+          binfo.boxfill8(Color.dark_grey, mx, my, mx + 15, my + 15)
           binfo.putblock8_8(16, 16, mouse.x, mouse.y, mouse.shape)
 
           # for i in 0 .. 2:

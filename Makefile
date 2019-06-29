@@ -14,9 +14,9 @@ build/asmhead.bin: src/asm/asmhead.asm Makefile
 build/nasmfunc.o: src/asm/nasmfunc.asm Makefile
 	nasm -f elf src/asm/nasmfunc.asm -o build/nasmfunc.o -l build/nasmfunc.lst -g
 
-build/bootpack.bin: src/nim/*.nim util/hankaku.nim src/nim/bootpack.nim.cfg build/nasmfunc.o Makefile
+build/bootpack.bin: src/nim/*.nim util/hankaku.nim src/nim/bootpack.nim.cfg Makefile
 	nim c src/nim/bootpack.nim
-	i686-linux-gnu-ld -m elf_i386 -e MikanMain -o build/bootpack.bin -T src/mikan.ld build/srccache/*.c.o build/nasmfunc.o
+	i686-linux-gnu-ld -m elf_i386 -e MikanMain -o build/bootpack.bin -T src/mikan.ld build/srccache/*.c.o
 
 build/mikan.sys: build/asmhead.bin build/bootpack.bin Makefile
 	cat build/asmhead.bin build/bootpack.bin > build/mikan.sys
