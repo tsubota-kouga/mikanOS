@@ -11,6 +11,7 @@ import fifo
 from int import keyfifo, keybuf, mousefifo, mousebuf
 from int import init_pic
 const binfo = cast[ptr BootInfo](ADR_BOOTINFO)
+
 var mouse: Mouse
 
 proc wait_KBC_sendready() =
@@ -43,8 +44,8 @@ proc MikanMain() {.exportc.} =
   init_keyboard()
   init_palette()
   binfo.init_screen
-  mouse.init_mouse_cursor8(Color.dark_grey)
-  binfo.putblock8_8(16, 16, 100, 100, mouse)
+  mouse.init(Color.dark_grey)
+  binfo.putblock8_8(16, 16, mouse.x, mouse.y, mouse.shape)
 
   enable_mouse()
 
@@ -53,18 +54,42 @@ proc MikanMain() {.exportc.} =
     if keyfifo.status + mousefifo.status == 0:
       io_stihlt()
     else:
-      if keyfifo.status != 0:
+      if keyfifo.status != 0:  # for keyboard
         let data = keyfifo.get
         io_sti()
-        var cstr: cstring = "0000"  # size: 4
-        cstr.num2hexstr(data)
+        var cstr: cstring = "    "  # size: 4
+        cstr.num2hexstr(4, data)
         binfo.boxfill8(Color.black, 0, 16, 8*4 - 1, 32)
         binfo.putfont8_asc(0, 16, Color.white, cstr)
-      elif mousefifo.status != 0:
+      elif mousefifo.status != 0:  # for mouse
         let data = mousefifo.get
         io_sti()
-        var cstr: cstring = "0000"  # size: 4
-        cstr.num2hexstr(data)
-        binfo.boxfill8(Color.black, 0, 32, 8*4 - 1, 48)
-        binfo.putfont8_asc(0, 32, Color.white, cstr)
+        binfo.boxfill8(Color.dark_grey, mouse.x, mouse.y, mouse.x + 15, mouse.y + 15)
+        if mouse.decode(cast[cuchar](data)):
+          binfo.boxfill8(Color.black, 0, 32, 8*4 - 1, 48)
+          case mouse.button:
+            of Button.Left:
+              binfo.putfont8_asc(0, 32, Color.white, "L")
+            of Button.Right:
+              binfo.putfont8_asc(0, 32, Color.white, "R")
+            of Button.Center:
+              binfo.putfont8_asc(0, 32, Color.white, "C")
+            of Button.Others:
+              discard
+          if mouse.x < 0:
+            mouse.x = 0
+          elif cast[int](binfo.scrnx) - 16 < mouse.x:
+            mouse.x = cast[int](binfo.scrnx) - 16
+          if mouse.y < 0:
+            mouse.y = 0
+          elif cast[int](binfo.scrny) - 16 < mouse.y:
+            mouse.y = cast[int](binfo.scrny) - 16
+          binfo.putblock8_8(16, 16, mouse.x, mouse.y, mouse.shape)
+
+          # for i in 0 .. 2:
+          #   var cstr: cstring = "    "  # size: 4
+          #   cstr.num2hexstr(4, cast[int](mouse_dbuf[i]))
+          #   binfo.boxfill8(Color.black, 0, 32*(i + 1), 8*4 - 1, 48*(i + 1))
+          #   binfo.putfont8_asc(0, 32*(i + 1), Color.white, cstr)
+
 

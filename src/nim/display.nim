@@ -1,5 +1,6 @@
 include "../../util/hankaku.nim"
 import constant
+import options
 
 type Vram = distinct ptr cuchar
 
@@ -10,7 +11,7 @@ proc `[]=`(vram: Vram, idx: int, color: Color) =
 
 type BootInfo* = object
   cyls, leds, vmode, reserve: cuchar
-  scrnx, scrny: int16
+  scrnx*, scrny*: int16
   vram: Vram
 
 proc `[]`*(binfo: ptr BootInfo, x, y: int): cuchar =
@@ -30,10 +31,10 @@ proc putfont8*(binfo: ptr BootInfo, x, y: int, color: Color, font: array[16, int
       if(d and mask) != 0: binfo[x + j, y + i] = color
       mask = mask shr 1
 
-proc putblock8_8*(binfo: ptr BootInfo, pxsize, pysize, px0, py0: int, buf: array[16, array[16, cuchar]]) =
+proc putblock8_8*(binfo: ptr BootInfo, pxsize, pysize, px0, py0: int, buf: array[16, array[16, Color]]) =
   for x in 0 ..< len(buf):
     for y in 0 ..< len(buf[x]):
-      binfo[px0 + x, py0 + y] = cast[Color](buf[y][x])
+      binfo[px0 + x, py0 + y] = buf[y][x]
 
 proc init_screen*(binfo: ptr BootInfo) =
   binfo.boxfill8(Color.dark_grey     , 0                , 0               , binfo.scrnx - 1 , binfo.scrny - 29)
@@ -62,9 +63,26 @@ proc putfont8_asc*(binfo: ptr BootInfo, x, y: int, color: Color, str: string or 
 proc putfont8_asc*(binfo: ptr BootInfo, x, y: int, color: Color, ch: char) {.noSideEffect.} =
   binfo.putfont8(x, y, color, fonts[ord(ch)])
 
-type Mouse* = array[16, array[16, cuchar]]
+type
+  Button* {.pure.} = enum
+    Left
+    Right
+    Center
+    Others
 
-proc init_mouse_cursor8*(mouse: var Mouse, backgroundcolor: Color) =
+  Mouse* = object
+    shape*: array[16, array[16, Color]]
+    buf*: array[3, cuchar]
+    phase*: int
+    btn, x*, y*: int
+
+proc `[]`*(mouse: Mouse, row, col: int): Color =
+  return mouse.shape[row][col]
+
+proc `[]=`*(mouse: var Mouse, row, col: int, color: Color) =
+  mouse.shape[row][col] = color
+
+proc init*(mouse: var Mouse, backgroundcolor: Color) =
   const CURSOR: array[16, string] = [
     "*...............",
     "*o*.............",
@@ -86,8 +104,46 @@ proc init_mouse_cursor8*(mouse: var Mouse, backgroundcolor: Color) =
   for x in 0 ..< 16:
     for y in 0 ..< 16:
       if CURSOR[x][y] == '*':
-        mouse[x][y] = cast[cuchar](Color.white)
+        mouse[x, y] = Color.white
       elif CURSOR[x][y] == 'o':
-        mouse[x][y] = cast[cuchar](Color.black)
+        mouse[x, y] = Color.black
       elif CURSOR[x][y] == '.':
-        mouse[x][y] = cast[cuchar](backgroundcolor)
+        mouse[x, y] = backgroundcolor
+  mouse.phase = 0
+
+proc decode*(mouse: var Mouse, data: cuchar): bool =
+  case mouse.phase:
+    of 0:
+      mouse.phase = 1
+    of 1, 2:
+      mouse.buf[mouse.phase - 1] = data
+      mouse.phase.inc
+    of 3:
+      mouse.buf[2] = data
+      mouse.btn = cast[int](mouse.buf[0]) and 0x07
+      mouse.x =
+        if (cast[int](mouse.buf[0]) and 0x10) != 0:
+          (cast[int](mouse.buf[1]) or 0xffffff00'i32) + mouse.x
+        else:
+          cast[int](mouse.buf[1]) + mouse.x
+      mouse.y =
+        if (cast[int](mouse.buf[0]) and 0x20) != 0:
+          -(cast[int](mouse.buf[2]) or 0xffffff00'i32) + mouse.y
+        else:
+          -cast[int](mouse.buf[2]) + mouse.y
+      mouse.phase = 1
+      return true
+    else:
+      discard
+  return false
+
+proc button*(mouse: Mouse): Button =
+  if (mouse.btn and 0x01) != 0:
+    return Button.Left
+  elif (mouse.btn and 0x02) != 0:
+    return Button.Right
+  elif (mouse.btn and 0x04) != 0:
+    return Button.Center
+  else:
+    return Button.Others
+
