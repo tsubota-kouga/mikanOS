@@ -13,9 +13,58 @@ type
     dw_count, access_right: cuchar
     offset_high: int16
 
-proc asm_inthandler21() {.importc.}
-proc asm_inthandler27() {.importc.}
-proc asm_inthandler2c() {.importc.}
+proc asm_inthandler21() {.asmNoStackFrame.} =
+  asm """
+    pushw %es
+    pushw %ds
+    pusha
+    movl %esp, %eax
+    pushl %eax
+    movw %ss, %ax
+    movw %ax, %ds
+    movw %ax, %es
+    call inthandler21
+    popl %eax
+    popa
+    popw %ds
+    popw %es
+    iret
+  """
+
+proc asm_inthandler27() {.asmNoStackFrame.} =
+  asm """
+    pushw %es
+    pushw %ds
+    pusha
+    movl %esp, %eax
+    pushl %eax
+    movw %ss, %ax
+    movw %ax, %ds
+    movw %ax, %es
+    call inthandler27
+    popl %eax
+    popa
+    popw %ds
+    popw %es
+    iret
+  """
+proc asm_inthandler2c() {.asmNoStackFrame.} =
+  asm """
+    pushw %es
+    pushw %ds
+    pusha
+    movl %esp, %eax
+    pushl %eax
+    movw %ss, %ax
+    movw %ax, %ds
+    movw %ax, %es
+    call inthandler2c
+    popl %eax
+    popa
+    popw %ds
+    popw %es
+    iret
+  """
 
 proc set(sd: ptr SegmentDescripter, limit, base, ar: cint)
 proc set(gd: ptr GateDescripter, offset, selector, ar: cint)
