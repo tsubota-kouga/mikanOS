@@ -2,19 +2,22 @@
 default:
 	make -r build/mikan.img
 
+build:
+	mkdir build
+
 util/hankaku.nim: util/hankaku.txt Makefile
 	nim c -r util/hankaku2nim.nim
 
-build/ipl.bin: src/asm/ipl.asm Makefile
+build/ipl.bin: src/asm/ipl.asm Makefile build
 	nasm -f bin src/asm/ipl.asm -o build/ipl.bin -l build/ipl.lst -g
 
-build/asmhead.bin: src/asm/asmhead.asm Makefile
+build/asmhead.bin: src/asm/asmhead.asm Makefile build
 	nasm -f bin src/asm/asmhead.asm -o build/asmhead.bin -l build/asmhead.lst -g
 
 build/nasmfunc.o: src/asm/nasmfunc.asm Makefile
 	nasm -f elf src/asm/nasmfunc.asm -o build/nasmfunc.o -l build/nasmfunc.lst -g
 
-build/bootpack.bin: src/nim/*.nim util/hankaku.nim src/nim/bootpack.nim.cfg Makefile
+build/bootpack.bin: src/nim/*.nim util/hankaku.nim src/nim/bootpack.nim.cfg Makefile build
 	nim c src/nim/bootpack.nim
 	i686-linux-gnu-ld -m elf_i386 -e MikanMain -o build/bootpack.bin -T src/mikan.ld build/srccache/*.c.o
 

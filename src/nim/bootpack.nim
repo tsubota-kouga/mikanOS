@@ -103,7 +103,7 @@ proc alloc(this: ptr MemoryManager, size: uint): uint =
       return a
   return 0
 
-proc free(this: ptr MemoryManager, address, size: uint): int {.discardable.} =
+proc free(this: ptr MemoryManager, address, size: uint): bool {.discardable.} =
   var i = 0'u
   while i < this.frees:
     if this.freerealm[i].address > address:
@@ -118,12 +118,12 @@ proc free(this: ptr MemoryManager, address, size: uint): int {.discardable.} =
           this.frees.dec
           for j in i ..< this.frees:
             this.freerealm[i] = this.freerealm[i + 1]
-      return 0
+      return true
   if i < this.frees:
     if address + size == this.freerealm[i].address:
       this.freerealm[i].address = address
       this.freerealm[i].size += size
-      return 0
+      return true
   if this.frees < MEMORY_FREES:
     for j in countdown(this.frees, i + 1):
       this.freerealm[j] = this.freerealm[j - 1]
@@ -132,10 +132,10 @@ proc free(this: ptr MemoryManager, address, size: uint): int {.discardable.} =
       this.maxfrees = this.frees
     this.freerealm[i].address = address
     this.freerealm[i].size = size
-    return 0
+    return true
   this.losts.inc
   this.lostsize += size
-  return -1
+  return false
 
 
 proc MikanMain() {.exportc.} =
@@ -159,15 +159,8 @@ proc MikanMain() {.exportc.} =
   init_palette()
   binfo.init_screen
   binfo.putblock8_8(16, 16, mouse.x, mouse.y, mouse.shape)
-
-
-  var cstr: cstring = "    "
-  cstr.num2hexstr(4, memtotal div (1024'u*1024'u))
-  binfo.putfont8_asc(0, 0, Color.white, cstr)
-
-  var cstr2: cstring = "    "
-  cstr2.num2hexstr(4, memorymanager.total div 1024'u)
-  binfo.putfont8_asc(16*4, 0, Color.white, cstr2)
+  binfo.putfont8_asc_format(0, 0, Color.white, "  %d", memtotal div (1024'u*1024'u))
+  binfo.putfont8_asc_format(16*4, 0, Color.white, "%d", memorymanager.total div 1024'u)
 
   while true:
     io_cli()
@@ -177,10 +170,8 @@ proc MikanMain() {.exportc.} =
       if keyboard.keyfifo.status != 0:  # for keyboard
         let data = keyboard.keyfifo.get
         io_sti()
-        var cstr: cstring = "    "  # size: 4
-        cstr.num2hexstr(4, cast[int](data))
         binfo.boxfill8(Color.black, 0, 16, 8*4 - 1, 32)
-        binfo.putfont8_asc(0, 16, Color.white, cstr)
+        binfo.putfont8_asc_format(0, 16, Color.white, "%x", cast[int](data))
       elif mouse.mousefifo.status != 0:  # for mouse
         let data = mouse.mousefifo.get
         io_sti()
@@ -191,11 +182,11 @@ proc MikanMain() {.exportc.} =
           binfo.boxfill8(Color.black, 0, 32, 8*4 - 1, 48)
           case mouse.button:
             of MouseButton.Left:
-              binfo.putfont8_asc(0, 32, Color.white, "L")
+              binfo.putasc8(0, 32, Color.white, "L")
             of MouseButton.Right:
-              binfo.putfont8_asc(0, 32, Color.white, "R")
+              binfo.putasc8(0, 32, Color.white, "R")
             of MouseButton.Center:
-              binfo.putfont8_asc(0, 32, Color.white, "C")
+              binfo.putasc8(0, 32, Color.white, "C")
             of MouseButton.Others:
               discard
           if mouse.x < 0:

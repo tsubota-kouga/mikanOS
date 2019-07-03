@@ -1,5 +1,6 @@
 include "../../util/hankaku.nim"
 import constant
+import util
 
 type Vram = distinct ptr cuchar
 
@@ -17,6 +18,7 @@ proc `[]`*(this: ptr BootInfo, x, y: int): cuchar =
   this.vram[x + y * this.scrnx]
 proc `[]=`*(this: ptr BootInfo, x, y:int, color: Color) =
   this.vram[x + y * this.scrnx] = color
+
 proc boxfill8*(this: ptr BootInfo, color: Color, x0, y0, x1, y1: int) =
   for y in y0 .. y1:
     for x in x0 .. x1:
@@ -53,12 +55,50 @@ proc init_screen*(this: ptr BootInfo) =
   this.boxfill8(Color.white         , this.scrnx - 47 , this.scrny - 3 , this.scrnx - 4 , this.scrny - 3 )
   this.boxfill8(Color.white         , this.scrnx - 3  , this.scrny - 24, this.scrnx - 3 , this.scrny - 3 )
 
-proc putfont8_asc*(this: ptr BootInfo, x, y: int, color: Color, str: string or cstring) =
+proc putasc8*[T](this: ptr BootInfo, x, y: int, color: Color, str: T) =
   var caret = x
   for c in str:
-    this.putfont8(caret, y, color, fonts[ord(c)])
-    caret = caret + 8
+    this.putfont8(caret, y, color, fonts[c.ord])
+    caret += 8
 
-proc putfont8_asc*(this: ptr BootInfo, x, y: int, color: Color, ch: char) =
-  this.putfont8(x, y, color, fonts[ord(ch)])
+proc putasc8*(this: ptr BootInfo, x, y: int, color: Color, ch: char) =
+  this.putfont8(x, y, color, fonts[ch.ord])
+
+proc putfont8_asc_format*[T, I](this: ptr BootInfo, x, y: int, color: Color, str: T, args: varargs[I]) =
+  var
+    caret = x
+    i = 0
+    argidx = 0
+  while i < str.len:
+    if str[i] == '%':
+      if (i + 1) < str.len:
+        case str[i + 1]:
+          of '%':
+            this.putfont8(caret, y, color, fonts['%'.ord])
+            i += 2
+            caret += 8
+          of 'd', 'x', 'o':
+            let N =
+              case str[i + 1]:
+                of 'd': 10
+                of 'x': 16
+                of 'o': 8
+                else: 10
+            let num = args[argidx]
+            argidx.inc
+            var numstr: array[80, cuchar]
+            let cnt = numstr.num2str(num, N)
+
+            for j in countdown(cnt - 1, 0):
+              this.putfont8(caret, y, color, fonts[numstr[numstr.len - j - 1].ord])
+              caret += 8
+            i += 2
+            caret += 8
+          else: # Error case
+            discard
+    else:
+      this.putfont8(caret, y, color, fonts[str[i].ord])
+      i.inc
+      caret += 8
+
 
