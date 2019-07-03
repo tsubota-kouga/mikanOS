@@ -25,15 +25,15 @@ proc put*(fifo: var FIFO, data: cuchar): cint {.discardable.} =
   fifo.free.dec
   return 0
 
-proc get*(fifo: var FIFO): cint =
+proc get*(fifo: var FIFO): cuchar =
   if fifo.free == fifo.size:  # empty buffer
-    return -1
+    return cast[cuchar](0)
   let data = (cast[ptr cuchar](cast[cint](fifo.buf) + sizeof(cuchar)*fifo.q))[]
   fifo.q.inc
   if fifo.q == fifo.size:
     fifo.q = 0
   fifo.free.inc
-  return cast[cint](data)
+  return data
 
 proc status*(fifo: var FIFO): cint =
   return fifo.size - fifo.free

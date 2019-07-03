@@ -1,12 +1,5 @@
-import fifo
 import low_layer
 import constant
-
-var keyfifo*: FIFO
-var keybuf*: array[32, cuchar]
-
-var mousefifo*: FIFO
-var mousebuf*: array[128, cuchar]
 
 proc init_pic*() =
   io_out8(PIC0_IMR, 0xff)  # prohibit interrupt
@@ -24,17 +17,6 @@ proc init_pic*() =
 
   io_out8(PIC0_IMR, 0xfb)  # only PIC1
   io_out8(PIC1_IMR, 0xff)  # prohibit all interrupt
-
-proc inthandler21(esp: ptr cint) {.exportc.} =
-  io_out8(PIC0_OCW2, 0x61)
-  let data = cast[cuchar](io_in8(PORT_KEYDAT))
-  keyfifo.put(data)
-
-proc inthandler2c(esp: ptr cint) {.exportc.} =
-  io_out8(PIC1_OCW2, 0x64)
-  io_out8(PIC0_OCW2, 0x62)
-  let data = cast[cuchar](io_in8(PORT_KEYDAT))
-  mousefifo.put(data)
 
 proc inthandler27(esp: ptr cint) {.exportc.} =
   io_out8(PIC0_OCW2, 0x67)

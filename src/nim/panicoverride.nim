@@ -1,6 +1,6 @@
 
 proc rawoutput(s: string) =
-    return
+  return
 
 proc panic(s: string) =
-    return
+  return

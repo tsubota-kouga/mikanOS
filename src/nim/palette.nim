@@ -9,7 +9,7 @@ proc set_palette(head, tail: cint, rgb: array[16*3, uint8]) =
   for i in head .. tail:
     for j in 0 ..< 3:
       io_out8(0x03c9, cast[uint16](rgb[rgb_index + j] shr 2))
-    rgb_index = rgb_index + 3
+    rgb_index += 3
 
   io_store_eflags(eflags)
 
