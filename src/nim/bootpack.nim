@@ -159,8 +159,8 @@ proc MikanMain() {.exportc.} =
   init_palette()
   binfo.init_screen
   binfo.putblock8_8(16, 16, mouse.x, mouse.y, mouse.shape)
-  binfo.putfont8_asc_format(0, 0, Color.white, "  %d", memtotal div (1024'u*1024'u))
-  binfo.putfont8_asc_format(16*4, 0, Color.white, "%d", memorymanager.total div 1024'u)
+  binfo.putasc8_format(0, 0, Color.white, "  %d", memtotal div (1024'u*1024'u))
+  binfo.putasc8_format(16*4, 0, Color.white, "a%dc", memorymanager.total div 1024'u)
 
   while true:
     io_cli()
@@ -171,7 +171,7 @@ proc MikanMain() {.exportc.} =
         let data = keyboard.keyfifo.get
         io_sti()
         binfo.boxfill8(Color.black, 0, 16, 8*4 - 1, 32)
-        binfo.putfont8_asc_format(0, 16, Color.white, "%x", cast[int](data))
+        binfo.putasc8_format(0, 16, Color.white, "%x", cast[int](data))
       elif mouse.mousefifo.status != 0:  # for mouse
         let data = mouse.mousefifo.get
         io_sti()

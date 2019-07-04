@@ -64,7 +64,7 @@ proc putasc8*[T](this: ptr BootInfo, x, y: int, color: Color, str: T) =
 proc putasc8*(this: ptr BootInfo, x, y: int, color: Color, ch: char) =
   this.putfont8(x, y, color, fonts[ch.ord])
 
-proc putfont8_asc_format*[T, I](this: ptr BootInfo, x, y: int, color: Color, str: T, args: varargs[I]) =
+proc putasc8_format*[T, I](this: ptr BootInfo, x, y: int, color: Color, str: T, args: varargs[I]) =
   var
     caret = x
     i = 0
