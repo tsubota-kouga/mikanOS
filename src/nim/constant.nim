@@ -54,6 +54,8 @@ const
     0x84'u8, 0x84'u8, 0x84'u8   # dark grey
     ]
 
+  MEMORY_ADDRESS* = 0x003c0000
+
 type Color* {.pure.} = enum
   black
   light_red

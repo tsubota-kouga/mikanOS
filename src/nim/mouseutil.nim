@@ -62,6 +62,8 @@ proc init*(this: var Mouse, backgroundcolor: Color) =
       elif CURSOR[x][y] == '.':
         this[x, y] = backgroundcolor
   this.phase = 0
+  this.x = 100
+  this.y = 100
   enable_mouse()
 
 proc decode*(this: var Mouse, data: cuchar): bool =
