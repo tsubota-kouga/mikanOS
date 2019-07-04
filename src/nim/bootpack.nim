@@ -160,7 +160,7 @@ proc MikanMain() {.exportc.} =
   binfo.init_screen
   binfo.putblock8_8(16, 16, mouse.x, mouse.y, mouse.shape)
   binfo.putasc8_format(0, 0, Color.white, "  %d", memtotal div (1024'u*1024'u))
-  binfo.putasc8_format(16*4, 0, Color.white, "a%dc", memorymanager.total div 1024'u)
+  binfo.putasc8_format(16*4, 0, Color.white, "%d", memorymanager.total div 1024'u)
 
   while true:
     io_cli()
