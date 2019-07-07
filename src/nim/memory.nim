@@ -119,11 +119,11 @@ proc free*(this: ptr MemoryManager, address, size: uint): bool {.discardable.} =
   this.lostsize += size
   return false
 
-proc alloc4k(this: ptr MemoryManager, size: uint): uint =
+proc alloc4k*(this: ptr MemoryManager, size: uint): uint =
   let size = (size + 0xfff'u) and 0xfffff000'u
   return this.alloc(size)
 
-proc alloc4k(this: ptr MemoryManager, address: uint, size: uint): bool =
+proc alloc4k*(this: ptr MemoryManager, address: uint, size: uint): bool =
   let size = (size + 0xfff'u) and 0xfffff000'u
   return this.free(address, size)
 

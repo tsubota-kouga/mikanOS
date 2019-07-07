@@ -57,7 +57,7 @@ const
   MEMORY_ADDRESS* = 0x003c0000
 
 type Color* {.pure.} = enum
-  black
+  black = 0'i8
   light_red
   light_green
   light_yellow
@@ -73,4 +73,5 @@ type Color* {.pure.} = enum
   dark_purple
   dark_sky_blue
   dark_grey
+  invisible
 

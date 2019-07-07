@@ -37,5 +37,8 @@ proc num2str*[S: static[int], T](a: var array[S, cuchar], num: T, N: int=10): in
     else:
       a[S - cnt] = cast[cuchar](n + ord('A') - 0xa)
     num = num div cast[T](N)
+  if cnt == 0:
+    cnt.inc
+    a[S - cnt] = '0'
   return cnt
 

@@ -2,69 +2,81 @@ include "../../util/hankaku.nim"
 import constant
 import util
 
-type Vram = distinct ptr cuchar
+type Vram* = distinct ptr Color
 
-proc `[]`(vram: Vram, idx: int): cuchar =
-  cast[ptr cuchar](cast[int](vram) + idx * sizeof(cuchar))[]
-proc `[]=`(vram: Vram, idx: int, color: Color) =
-  cast[ptr cuchar](cast[int](vram) + idx * sizeof(cuchar))[] = cast[cuchar](color)
+proc `[]`*(vram: Vram, idx: int): Color =
+  cast[ptr Color](cast[int](vram) + idx * sizeof(Color))[]
+proc `[]=`*(vram: Vram, idx: int, color: Color) =
+  cast[ptr Color](cast[int](vram) + idx * sizeof(Color))[] = color
 
 type BootInfo* = object
   cyls, leds, vmode, reserve: cuchar
   scrnx*, scrny*: int16
-  vram: Vram
+  vram*: Vram
 
-proc `[]`*(this: ptr BootInfo, x, y: int): cuchar =
+proc `[]`*(this: ptr BootInfo, x, y: int): Color =
   this.vram[x + y * this.scrnx]
 proc `[]=`*(this: ptr BootInfo, x, y:int, color: Color) =
   this.vram[x + y * this.scrnx] = color
 
-proc boxfill8*(this: ptr BootInfo, color: Color, x0, y0, x1, y1: int) =
+proc boxfill8*(vram: Vram, xsize: int, color: Color, x0, y0, x1, y1: int) =
   for y in y0 .. y1:
     for x in x0 .. x1:
-      this[x, y] = color
+      vram[x + y*xsize] = color
 
-proc putfont8*(this: ptr BootInfo, x, y: int, color: Color, font: array[16, int8]) =
+proc boxfill8*(this: ptr BootInfo, color: Color, x0, y0, x1, y1: int) =
+  this.vram.boxfill8(this.scrnx, color, x0, y0, x1, y1)
+
+proc putfont8*(vram: Vram, xsize, x, y: int, color: Color, font: array[16, int8]) =
   for i in 0 ..< 16:
     let d = font[i]
     var mask = 0x80
     for j in 0 ..< 8:
-      if(d and mask) != 0: this[x + j, y + i] = color
+      if(d and mask) != 0: vram[x + j + (y + i)*xsize] = color
       mask = mask shr 1
+
+proc putfont8*(this: ptr BootInfo, x, y: int, color: Color, font: array[16, int8]) =
+  this.vram.putfont8(this.scrnx, x, y, color, font)
 
 proc putblock8_8*(this: ptr BootInfo, pxsize, pysize, px0, py0: int, buf: array[16, array[16, Color]]) =
   for x in 0 ..< len(buf):
     for y in 0 ..< len(buf[x]):
       this[px0 + x, py0 + y] = buf[y][x]
 
+proc init_screen*(vram: Vram, xsize, ysize: int) =
+  vram.boxfill8(xsize, Color.dark_grey     , 0          , 0         , xsize - 1 , ysize - 29)
+  vram.boxfill8(xsize, Color.grey          , 0          , ysize - 28, xsize - 1 , ysize - 28)
+  vram.boxfill8(xsize, Color.white         , 0          , ysize - 27, xsize - 1 , ysize - 27)
+  vram.boxfill8(xsize, Color.grey          , 0          , ysize - 26, xsize - 1 , ysize - 1 )
+
+  vram.boxfill8(xsize, Color.white         , 3          , ysize - 24, 59        , ysize - 24)
+  vram.boxfill8(xsize, Color.white         , 2          , ysize - 24, 2         , ysize - 4 )
+  vram.boxfill8(xsize, Color.dark_grey     , 3          , ysize - 4 , 59        , ysize - 4 )
+  vram.boxfill8(xsize, Color.dark_grey     , 59         , ysize - 23, 59        , ysize - 5 )
+  vram.boxfill8(xsize, Color.black         , 2          , ysize - 3 , 59        , ysize - 3 )
+  vram.boxfill8(xsize, Color.black         , 60         , ysize - 24, 60        , ysize - 3 )
+
+  vram.boxfill8(xsize, Color.dark_grey     , xsize - 47 , ysize - 24, xsize - 4 , ysize - 24)
+  vram.boxfill8(xsize, Color.dark_grey     , xsize - 47 , ysize - 23, xsize - 47, ysize - 4 )
+  vram.boxfill8(xsize, Color.white         , xsize - 47 , ysize - 3 , xsize - 4 , ysize - 3 )
+  vram.boxfill8(xsize, Color.white         , xsize - 3  , ysize - 24, xsize - 3 , ysize - 3 )
+
 proc init_screen*(this: ptr BootInfo) =
-  this.boxfill8(Color.dark_grey     , 0                , 0               , this.scrnx - 1 , this.scrny - 29)
-  this.boxfill8(Color.grey          , 0                , this.scrny - 28, this.scrnx - 1 , this.scrny - 28)
-  this.boxfill8(Color.white         , 0                , this.scrny - 27, this.scrnx - 1 , this.scrny - 27)
-  this.boxfill8(Color.grey          , 0                , this.scrny - 26, this.scrnx - 1 , this.scrny - 1 )
+  this.vram.init_screen(this.scrnx, this.scrny)
 
-  this.boxfill8(Color.white         , 3                , this.scrny - 24, 59              , this.scrny - 24)
-  this.boxfill8(Color.white         , 2                , this.scrny - 24, 2               , this.scrny - 4 )
-  this.boxfill8(Color.dark_grey     , 3                , this.scrny - 4 , 59              , this.scrny - 4 )
-  this.boxfill8(Color.dark_grey     , 59               , this.scrny - 23, 59              , this.scrny - 5 )
-  this.boxfill8(Color.black         , 2                , this.scrny - 3 , 59              , this.scrny - 3 )
-  this.boxfill8(Color.black         , 60               , this.scrny - 24, 60              , this.scrny - 3 )
-
-  this.boxfill8(Color.dark_grey     , this.scrnx - 47 , this.scrny - 24, this.scrnx - 4 , this.scrny - 24)
-  this.boxfill8(Color.dark_grey     , this.scrnx - 47 , this.scrny - 23, this.scrnx - 47, this.scrny - 4 )
-  this.boxfill8(Color.white         , this.scrnx - 47 , this.scrny - 3 , this.scrnx - 4 , this.scrny - 3 )
-  this.boxfill8(Color.white         , this.scrnx - 3  , this.scrny - 24, this.scrnx - 3 , this.scrny - 3 )
-
-proc putasc8*[T](this: ptr BootInfo, x, y: int, color: Color, str: T) =
+proc putasc8*[T](vram: Vram, xsize, x, y: int, color: Color, str: T) =
   var caret = x
   for c in str:
-    this.putfont8(caret, y, color, fonts[c.ord])
+    vram.putfont8(xsize, caret, y, color, fonts[c.ord])
     caret += 8
+
+proc putasc8*[T](this: ptr BootInfo, x, y: int, color: Color, str: T) =
+  this.vram.putasc8(this.scrnx, x, y, color, str)
 
 proc putasc8*(this: ptr BootInfo, x, y: int, color: Color, ch: char) =
   this.putfont8(x, y, color, fonts[ch.ord])
 
-proc putasc8_format*[T, I](this: ptr BootInfo, x, y: int, color: Color, str: T, args: varargs[I]) =
+proc putasc8_format*[T, I](vram: Vram, xsize, x, y: int, color: Color, str: T, args: varargs[I]) =
   var
     caret = x
     i = 0
@@ -74,7 +86,7 @@ proc putasc8_format*[T, I](this: ptr BootInfo, x, y: int, color: Color, str: T, 
       if (i + 1) < str.len:
         case str[i + 1]:
           of '%':
-            this.putfont8(caret, y, color, fonts['%'.ord])
+            vram.putfont8(xsize, caret, y, color, fonts['%'.ord])
             i += 2
             caret += 8
           of 'd', 'x', 'o':
@@ -86,19 +98,20 @@ proc putasc8_format*[T, I](this: ptr BootInfo, x, y: int, color: Color, str: T, 
                 else: 10
             let num = args[argidx]
             argidx.inc
-            var numstr: array[80, cuchar]
+            var numstr: array[80, char]
             let cnt = numstr.num2str(num, N)
 
             for j in countdown(cnt - 1, 0):
-              this.putfont8(caret, y, color, fonts[numstr[numstr.len - j - 1].ord])
+              vram.putfont8(xsize, caret, y, color, fonts[numstr[numstr.len - j - 1].ord])
               caret += 8
             i += 2
             caret += 8
           else: # Error case
             discard
     else:
-      this.putfont8(caret, y, color, fonts[str[i].ord])
+      vram.putfont8(xsize, caret, y, color, fonts[str[i].ord])
       i.inc
       caret += 8
 
-
+proc putasc8_format*[T, I](this: ptr BootInfo, x, y: int, color: Color, str: T, args: varargs[I]) =
+  this.vram.putasc8_format(this.scrnx, x, y, color, str, args)
