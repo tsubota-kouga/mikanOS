@@ -37,7 +37,6 @@ proc alloc*(ctl: ptr SheetControl): ptr Sheet =
   var sht: ptr Sheet
   for i in 0 .. MaxSheets:
     if ctl.sheets0[i].flags == Unused:
-      # sht = ctl.sheets0[i]
       sht = cast[ptr Sheet](cast[int](ctl.sheets0.addr) + i*sizeof(Sheet))
       sht.flags = Used
       sht.height = -1
