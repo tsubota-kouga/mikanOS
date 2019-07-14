@@ -54,6 +54,7 @@ proc refreshSub(ctl: ptr SheetControl, vx0, vy0, vx1, vy1: int) =
     let
       sht = ctl.sheets[h]
     var
+      buf = sht.buf
       bx0 = vx0 - sht.vx0
       by0 = vy0 - sht.vy0
       bx1 = vx1 - sht.vx0
@@ -62,15 +63,14 @@ proc refreshSub(ctl: ptr SheetControl, vx0, vy0, vx1, vy1: int) =
     if by0 < 0: by0 = 0
     if bx1 > sht.bxsize: bx1 = sht.bxsize
     if by1 > sht.bysize: by1 = sht.bysize
-    var buf = sht.buf
     for by in by0 ..< by1:
       let vy = sht.vy0 + by
       for bx in bx0 ..< bx1:
         let
           vx = sht.vx0 + bx
           c = buf[by * sht.bxsize + bx]
-        if cast[Color](c) != Color.invisible:
-          vram[vy * ctl.xsize + vx] = cast[Color](c)
+        if c != Color.invisible:
+          vram[vy * ctl.xsize + vx] = c
 
 
 proc refresh*(ctl: ptr SheetControl, sht: ptr Sheet, bx0, by0, bx1, by1: int) =

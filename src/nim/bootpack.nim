@@ -73,18 +73,17 @@ proc MikanMain() {.exportc.} =
         if mouse.decode(data):
           bufback.boxfill8(binfo.scrnx, Color.black, 0, 32, 8*5 - 1, 47)
           bufback.putasc8(binfo.scrnx, 0, 32, Color.white, "[lcr]")
-          case mouse.button:
-            of MouseButton.Left:
-              bufback.putasc8(binfo.scrnx, 8, 32, Color.black, "l")
-              bufback.putasc8(binfo.scrnx, 8, 32, Color.white, "L")
-            of MouseButton.Right:
-              bufback.putasc8(binfo.scrnx, 24, 32, Color.black, "r")
-              bufback.putasc8(binfo.scrnx, 24, 32, Color.white, "R")
-            of MouseButton.Center:
-              bufback.putasc8(binfo.scrnx, 16, 32, Color.black, "c")
-              bufback.putasc8(binfo.scrnx, 16, 32, Color.white, "C")
-            of MouseButton.Others:
-              discard
+          let b = mouse.buttons
+          if MouseButton.Right in b:
+            bufback.putasc8(binfo.scrnx, 24, 32, Color.black, "r")
+            bufback.putasc8(binfo.scrnx, 24, 32, Color.white, "R")
+          if MouseButton.Left in b:
+            bufback.putasc8(binfo.scrnx, 8, 32, Color.black, "l")
+            bufback.putasc8(binfo.scrnx, 8, 32, Color.white, "L")
+          if MouseButton.Center in b:
+            bufback.putasc8(binfo.scrnx, 16, 32, Color.black, "c")
+            bufback.putasc8(binfo.scrnx, 16, 32, Color.white, "C")
+
           shtctl.refresh(shtback, 0, 32, 8*5, 48)
           if mouse.x < 0:
             mouse.x = 0

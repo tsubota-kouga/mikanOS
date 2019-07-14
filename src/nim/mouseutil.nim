@@ -5,7 +5,7 @@ from keyboardutil import wait_KBC_sendready
 
 const bufsize = 128
 type
-  MouseButton* {.pure.} = enum
+  MouseButton* {.pure size: sizeof(int8).} = enum
     Left
     Right
     Center
@@ -92,7 +92,7 @@ proc decode*(this: var Mouse, data: cuchar): bool =
       discard
   return false
 
-func button*(this: Mouse): MouseButton =
+func button*(this: Mouse): MouseButton {.deprecated.} =
   if (this.btn and 0x01) != 0:
     return MouseButton.Left
   elif (this.btn and 0x02) != 0:
@@ -101,6 +101,15 @@ func button*(this: Mouse): MouseButton =
     return MouseButton.Center
   else:
     return MouseButton.Others
+
+func buttons*(this: Mouse): set[MouseButton] =
+  result = {}
+  if (this.btn and 0x01) != 0:
+    result.incl MouseButton.Left
+  if (this.btn and 0x02) != 0:
+    result.incl MouseButton.Right
+  if (this.btn and 0x04) != 0:
+    result.incl MouseButton.Center
 
 proc inthandler2c(esp: ptr cint) {.exportc.} =
   io_out8(PIC1_OCW2, 0x64)
