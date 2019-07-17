@@ -81,7 +81,7 @@ proc alloc*(this: ptr MemoryManager, size: uint): uint =
       if this.freerealm[i].size == 0:
         this.frees.dec
         for j in i ..< this.frees:
-          this.freerealm[i] = this.freerealm[i + 1]
+          this.freerealm[j] = this.freerealm[j + 1]
       return a
   return 0
 
@@ -123,7 +123,11 @@ proc alloc4k*(this: ptr MemoryManager, size: uint): uint =
   let size = (size + 0xfff'u) and 0xfffff000'u
   return this.alloc(size)
 
-proc alloc4k*(this: ptr MemoryManager, address: uint, size: uint): bool =
+proc free4k*(this: ptr MemoryManager, address, size: uint): bool {.discardable.} =
   let size = (size + 0xfff'u) and 0xfffff000'u
   return this.free(address, size)
 
+proc memmove(dest: pointer, src: pointer, count: int): pointer {.exportc.} =
+  for i in 0 ..< count:
+    cast[ptr cuchar](cast[int](dest) + i*sizeof(cuchar))[] = cast[ptr cuchar](cast[int](src) + i*sizeof(cuchar))[]
+  return dest

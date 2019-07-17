@@ -1,6 +1,15 @@
 
-proc `+`*[T: untyped, U: int or int8 or cint](ptrobj: ptr T, idx: U): ptr T =
-  cast[ptr T](cast[U](ptrobj) + idx * sizeof(T))
+type ArithmeticPtr*[T] = distinct ptr T
+
+proc `[]`*[T](p: ArithmeticPtr[T], idx: int): T =
+  cast[ptr T](cast[int](p) + idx * sizeof(T))[]
+proc `[]=`*[T](p: ArithmeticPtr[T], idx: int, v: T) =
+  cast[ptr T](cast[int](p) + idx * sizeof(T))[] = v
+proc `+`*[T](p: ArithmeticPtr[T], idx: int): ptr T =
+  cast[ptr T](cast[int](p) + idx*sizeof(T))
+
+proc `+`*[T](p: ptr T, idx: int): ptr T =
+  cast[ptr T](cast[int](p) + idx * sizeof(T))
 
 proc num2hexstr*[T](cstr: var cstring, size: int or cint, num: T) {.deprecated.} =
   var num = num

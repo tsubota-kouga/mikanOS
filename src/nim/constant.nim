@@ -35,6 +35,8 @@ const
   KEYCMD_SENDTO_MOUSE* = 0xd4
   MOUSECMD_ENABLE* = 0xf4
 
+  MEMORY_ADDRESS* = 0x003c0000
+
   table_rgb*: array[16*3, uint8] = [
     0x00'u8, 0x00'u8, 0x00'u8,  # black
     0xff'u8, 0x00'u8, 0x00'u8,  # light red
@@ -44,20 +46,18 @@ const
     0xff'u8, 0x00'u8, 0xff'u8,  # light purple
     0x00'u8, 0xff'u8, 0xff'u8,  # sky blue
     0xff'u8, 0xff'u8, 0xff'u8,  # white
-    0xc6'u8, 0xc6'u8, 0xc6'u8,  # grey
+    0xc6'u8, 0xc6'u8, 0xc6'u8,  # gray
     0x84'u8, 0x00'u8, 0x00'u8,  # dark red
     0x00'u8, 0x84'u8, 0x00'u8,  # dark green
     0x84'u8, 0x84'u8, 0x00'u8,  # dark yellow
     0x00'u8, 0x00'u8, 0x84'u8,  # dark blue
     0x84'u8, 0x00'u8, 0x84'u8,  # dark purple
     0x00'u8, 0x84'u8, 0x84'u8,  # dark sky blue
-    0x84'u8, 0x84'u8, 0x84'u8   # dark grey
+    0x84'u8, 0x84'u8, 0x84'u8   # dark gray
     ]
 
-  MEMORY_ADDRESS* = 0x003c0000
-
 type Color* {.pure.} = enum
-  black = 0'i8
+  black
   light_red
   light_green
   light_yellow
@@ -65,13 +65,13 @@ type Color* {.pure.} = enum
   light_purple
   sky_blue
   white
-  grey
+  gray
   dark_red
   dark_green
   dark_yellow
   dark_blue
   dark_purple
   dark_sky_blue
-  dark_grey
+  dark_gray
   invisible
 

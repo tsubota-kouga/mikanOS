@@ -2,12 +2,7 @@ include "../../util/hankaku.nim"
 import constant
 import util
 
-type Vram* = distinct ptr Color
-
-proc `[]`*(vram: Vram, idx: int): Color =
-  cast[ptr Color](cast[int](vram) + idx * sizeof(Color))[]
-proc `[]=`*(vram: Vram, idx: int, color: Color) =
-  cast[ptr Color](cast[int](vram) + idx * sizeof(Color))[] = color
+type Vram* = ArithmeticPtr[Color]
 
 type BootInfo* = object
   cyls, leds, vmode, reserve: cuchar
@@ -44,20 +39,20 @@ proc putblock8_8*(this: ptr BootInfo, pxsize, pysize, px0, py0: int, buf: array[
       this[px0 + x, py0 + y] = buf[y][x]
 
 proc init_screen*(vram: Vram, xsize, ysize: int) =
-  vram.boxfill8(xsize, Color.dark_grey     , 0          , 0         , xsize - 1 , ysize - 29)
-  vram.boxfill8(xsize, Color.grey          , 0          , ysize - 28, xsize - 1 , ysize - 28)
+  vram.boxfill8(xsize, Color.dark_gray     , 0          , 0         , xsize - 1 , ysize - 29)
+  vram.boxfill8(xsize, Color.gray          , 0          , ysize - 28, xsize - 1 , ysize - 28)
   vram.boxfill8(xsize, Color.white         , 0          , ysize - 27, xsize - 1 , ysize - 27)
-  vram.boxfill8(xsize, Color.grey          , 0          , ysize - 26, xsize - 1 , ysize - 1 )
+  vram.boxfill8(xsize, Color.gray          , 0          , ysize - 26, xsize - 1 , ysize - 1 )
 
   vram.boxfill8(xsize, Color.white         , 3          , ysize - 24, 59        , ysize - 24)
   vram.boxfill8(xsize, Color.white         , 2          , ysize - 24, 2         , ysize - 4 )
-  vram.boxfill8(xsize, Color.dark_grey     , 3          , ysize - 4 , 59        , ysize - 4 )
-  vram.boxfill8(xsize, Color.dark_grey     , 59         , ysize - 23, 59        , ysize - 5 )
+  vram.boxfill8(xsize, Color.dark_gray     , 3          , ysize - 4 , 59        , ysize - 4 )
+  vram.boxfill8(xsize, Color.dark_gray     , 59         , ysize - 23, 59        , ysize - 5 )
   vram.boxfill8(xsize, Color.black         , 2          , ysize - 3 , 59        , ysize - 3 )
   vram.boxfill8(xsize, Color.black         , 60         , ysize - 24, 60        , ysize - 3 )
 
-  vram.boxfill8(xsize, Color.dark_grey     , xsize - 47 , ysize - 24, xsize - 4 , ysize - 24)
-  vram.boxfill8(xsize, Color.dark_grey     , xsize - 47 , ysize - 23, xsize - 47, ysize - 4 )
+  vram.boxfill8(xsize, Color.dark_gray     , xsize - 47 , ysize - 24, xsize - 4 , ysize - 24)
+  vram.boxfill8(xsize, Color.dark_gray     , xsize - 47 , ysize - 23, xsize - 47, ysize - 4 )
   vram.boxfill8(xsize, Color.white         , xsize - 47 , ysize - 3 , xsize - 4 , ysize - 3 )
   vram.boxfill8(xsize, Color.white         , xsize - 3  , ysize - 24, xsize - 3 , ysize - 3 )
 

@@ -18,6 +18,49 @@ import sheet
 
 const binfo = cast[ptr BootInfo](ADR_BOOTINFO)
 
+proc createWindow8(vram: Vram, xsize, ysize: int, title: cstring) =
+  const CLOSEBUTTON = [
+    "ooooooooooooooo.",
+    "o%%%%%%%%%%%%%$.",
+    "o%%%%%%%%%%%%%$.",
+    "o%%%##%%%%##%%$.",
+    "o%%%%##%%##%%%$.",
+    "o%%%%%####%%%%$.",
+    "o%%%%%%##%%%%%$.",
+    "o%%%%%####%%%%$.",
+    "o%%%%##%%##%%%$.",
+    "o%%%##%%%%##%%$.",
+    "o%%%%%%%%%%%%%$.",
+    "o%%%%%%%%%%%%%$.",
+    "o$$$$$$$$$$$$$$.",
+    "................"
+  ]
+  vram.boxfill8(xsize, Color.gray     , 0         , 0         , xsize - 1 , 0         )
+  vram.boxfill8(xsize, Color.black    , 1         , 1         , xsize - 2 , 1         )
+  vram.boxfill8(xsize, Color.gray     , 0         , 0         , 0         , ysize - 1 )
+  vram.boxfill8(xsize, Color.white    , 1         , 1         , 1         , ysize - 2 )
+  vram.boxfill8(xsize, Color.dark_gray, xsize - 2 , 1         , xsize - 2 , ysize - 2 )
+  vram.boxfill8(xsize, Color.black    , xsize - 1 , 0         , xsize - 1 , ysize - 1 )
+  vram.boxfill8(xsize, Color.gray     , 2         , 2         , xsize - 3 , ysize - 3 )
+  vram.boxfill8(xsize, Color.dark_gray , 3         , 3         , xsize - 4 , 20        )
+  vram.boxfill8(xsize, Color.dark_gray, 1         , ysize - 2 , xsize - 2 , ysize - 2 )
+  vram.boxfill8(xsize, Color.black    , 0         , ysize - 1 , xsize - 1 , ysize - 1 )
+  vram.putasc8(xsize, 24, 4, Color.black, title)
+  for y in 0 ..< 14:
+    for x in 0 ..< 16:
+      let c = CLOSEBUTTON[y][x]
+      vram[(5 + y)*xsize + (xsize - 21 + x)] =
+        case CLOSEBUTTON[y][x]:
+          of '.':
+            Color.black
+          of '$':
+            Color.dark_gray
+          of '%':
+            Color.gray
+          else:
+            Color.white
+
+
 proc MikanMain() {.exportc.} =
   init_gdtidt()
   init_pic()
@@ -30,8 +73,8 @@ proc MikanMain() {.exportc.} =
   mouse.init(Color.invisible)
 
   var
-    memtotal = memtest(0x00400000'u, 0xbfffffff'u)
     memorymanager = cast[ptr MemoryManager](MEMORY_ADDRESS)
+    memtotal = memtest(0x00400000'u, 0xbfffffff'u)
   memorymanager.init()
   memorymanager.free(0x00001000'u, 0x0009e000'u)
   memorymanager.free(0x00400000'u, memtotal - 0x00400000'u)
@@ -39,34 +82,56 @@ proc MikanMain() {.exportc.} =
   init_palette()
   var
     shtctl = createSheetControl(memorymanager, binfo.vram, binfo.scrnx, binfo.scrny)
+
     shtback = shtctl.alloc()
     shtmouse = shtctl.alloc()
-    bufback = cast[Vram](memorymanager.alloc4k(cast[uint](binfo.scrnx*binfo.scrny)))
+    shtwin = shtctl.alloc()
+
+  let
+    bufwin = cast[Vram](memorymanager.alloc4k(160'u*52'u))
+    bufback = cast[Vram](memorymanager.alloc4k(cast[uint](cast[int](binfo.scrnx)*cast[int](binfo.scrny))))
+
   shtback.setbuf(bufback, binfo.scrnx, binfo.scrny)
   shtmouse.setbuf(cast[Vram](mouse.shape.addr), 16, 16)
+  shtwin.setbuf(bufwin, 160, 52)
+
   bufback.init_screen(binfo.scrnx, binfo.scrny)
 
-  sheetSlide(shtctl, shtback, 0, 0)
-  sheetSlide(shtctl, shtmouse, mouse.x, mouse.y)
-  sheetUpdown(shtctl, shtback, 0)
-  sheetUpdown(shtctl, shtmouse, 1)
+  bufwin.createWindow8(160, 52, "Counter")
+
+  shtback.sheetSlide(0, 0)
+  shtmouse.sheetSlide(mouse.x, mouse.y)
+  shtwin.sheetSlide(80, 72)
+
+  shtback.sheetUpdown(0)
+  shtwin.sheetUpdown(1)
+  shtmouse.sheetUpdown(2)
+
   bufback.putasc8_format(binfo.scrnx, 0, 0, Color.white,
                        "memory: %dMB, free: %dKB",
                        memtotal div (1024'u*1024'u),
                        memorymanager.total div 1024'u)
-  shtctl.refresh(shtback, 0, 0, binfo.scrnx, 48)
+  shtback.refresh(0, 0, binfo.scrnx, 48)
+
+  var counter = 0
 
   while true:
+    counter.inc
+    bufwin.boxfill8(160, Color.gray, 40, 28, 119, 43)
+    bufwin.putasc8_format(160, 40, 28, Color.black, "%d", counter)
+    shtwin.refresh(40, 28, 120, 44)
+
     io_cli()
     if keyboard.keyfifo.status + mouse.mousefifo.status == 0:
-      io_stihlt()
+      # io_stihlt()
+      io_sti()
     else:
       if keyboard.keyfifo.status != 0:  # for keyboard
         let data = keyboard.keyfifo.get
         io_sti()
         bufback.boxfill8(binfo.scrnx, Color.black, 0, 16, 8*4 - 1, 31)
         bufback.putasc8_format(binfo.scrnx, 0, 16, Color.white, "%x", cast[int](data))
-        shtctl.refresh(shtback, 0, 16, 8*4, 32)
+        shtback.refresh(0, 16, 8*4, 32)
       elif mouse.mousefifo.status != 0:  # for mouse
         let data = mouse.mousefifo.get
         io_sti()
@@ -84,17 +149,18 @@ proc MikanMain() {.exportc.} =
             bufback.putasc8(binfo.scrnx, 16, 32, Color.black, "c")
             bufback.putasc8(binfo.scrnx, 16, 32, Color.white, "C")
 
-          shtctl.refresh(shtback, 0, 32, 8*5, 48)
+          shtback.refresh(0, 32, 8*5, 48)
           if mouse.x < 0:
             mouse.x = 0
-          elif cast[int](binfo.scrnx) - 16 < mouse.x:
-            mouse.x = cast[int](binfo.scrnx) - 16
+          elif cast[int](binfo.scrnx) - 1 < mouse.x:
+            mouse.x = cast[int](binfo.scrnx) - 1
           if mouse.y < 0:
             mouse.y = 0
-          elif cast[int](binfo.scrny) - 16 < mouse.y:
-            mouse.y = cast[int](binfo.scrny) - 16
+          elif cast[int](binfo.scrny) - 1 < mouse.y:
+            mouse.y = cast[int](binfo.scrny) - 1
           bufback.boxfill8(binfo.scrnx, Color.black, 0, 48, 8*10 - 1, 64 - 1)
           bufback.putasc8_format(binfo.scrnx, 0, 48, Color.white, "%d, %d", mouse.x, mouse.y)
-          shtctl.refresh(shtback, 0, 48, 8*10, 64)
-          sheetSlide(shtctl, shtmouse, mouse.x, mouse.y)
+          shtback.refresh(0, 48, 8*10, 64)
+
+          shtmouse.sheetSlide(mouse.x, mouse.y)
 

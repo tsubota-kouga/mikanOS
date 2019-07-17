@@ -35,7 +35,7 @@ proc enable_mouse() =
 
 proc init*(this: var Mouse, backgroundcolor: Color) =
   this.mousefifo.init(bufsize, cast[ptr cuchar](this.mousebuf.addr))
-  const CURSOR: array[16, string] = [
+  const CURSOR = [
     "*...............",
     "*o*.............",
     "*oo*............",
