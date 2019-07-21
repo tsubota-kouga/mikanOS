@@ -32,4 +32,6 @@ run: build/mikan.img
 	qemu-system-i386 -m 32 -vga std -monitor stdio -drive format=raw,file=build/mikan.img,if=floppy # -gdb tcp::10000 -S
 
 clean:
-	rm -f build/* -rf
+	rm build/* -rf
+	rm util/hankaku2nim
+	rm util/hankaku.nim
