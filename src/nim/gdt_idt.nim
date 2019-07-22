@@ -13,6 +13,24 @@ type
     dw_count, access_right: cuchar
     offset_high: int16
 
+proc asm_inthandler20() {.asmNoStackFrame.} =
+  asm """
+    pushw %es
+    pushw %ds
+    pusha
+    movl %esp, %eax
+    pushl %eax
+    movw %ss, %ax
+    movw %ax, %ds
+    movw %ax, %es
+    call inthandler20
+    popl %eax
+    popa
+    popw %ds
+    popw %es
+    iret
+  """
+
 proc asm_inthandler21() {.asmNoStackFrame.} =
   asm """
     pushw %es
@@ -48,6 +66,7 @@ proc asm_inthandler27() {.asmNoStackFrame.} =
     popw %es
     iret
   """
+
 proc asm_inthandler2c() {.asmNoStackFrame.} =
   asm """
     pushw %es
@@ -83,6 +102,7 @@ proc init_gdtidt*() =
     (idt + i).set(0, 0, 0)
   load_idtr(LIMIT_IDT, ADR_IDT)
 
+  (idt + 0x20).set(cast[cint](asm_inthandler20), 2 shl 3, AR_INTGATE32)
   (idt + 0x21).set(cast[cint](asm_inthandler21), 2 shl 3, AR_INTGATE32)
   (idt + 0x27).set(cast[cint](asm_inthandler27), 2 shl 3, AR_INTGATE32)
   (idt + 0x2c).set(cast[cint](asm_inthandler2c), 2 shl 3, AR_INTGATE32)

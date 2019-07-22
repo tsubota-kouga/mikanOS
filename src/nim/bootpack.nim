@@ -11,23 +11,28 @@ from keyboardutil import keyboard
 import keyboardutil
 from mouseutil import mouse
 import mouseutil
-from int import init_pic
+import int
 import memory
 import sheet
 import window
+from timer import tctrl
+import timer
 
 const binfo = cast[ptr BootInfo](ADR_BOOTINFO)
 
 proc MikanMain() {.exportc.} =
   init_gdtidt()
   init_pic()
+  init_pit()
   io_sti()
 
-  io_out8(PIC0_IMR, 0xf9)
+  io_out8(PIC0_IMR, 0xf8)
   io_out8(PIC1_IMR, 0xef)
 
   keyboard.init
   mouse.init(Color.invisible)
+  tctrl.init
+  tctrl.set(300, 4'i8)
 
   var
     memorymanager = cast[ptr MemoryManager](MEMORY_ADDRESS)
@@ -54,7 +59,7 @@ proc MikanMain() {.exportc.} =
 
   bufback.init_screen(binfo.scrnx, binfo.scrny)
 
-  bufwin.createWindow8(160, 52, "Counter")
+  bufwin.createWindow8(160, 52, "Timer")
 
   shtback.sheetSlide(0, 0)
   shtmouse.sheetSlide(mouse.x, mouse.y)
@@ -70,27 +75,23 @@ proc MikanMain() {.exportc.} =
                        memorymanager.total div 1024'u)
   shtback.refresh(0, 0, binfo.scrnx, 48)
 
-  var counter = 0
-
   while true:
-    counter.inc
     bufwin.boxfill8(160, Color.gray, 40, 28, 119, 43)
-    bufwin.putasc8_format(160, 40, 28, Color.black, "%d", counter)
+    bufwin.putasc8_format(160, 40, 28, Color.black, "%d", tctrl.get)
     shtwin.refresh(40, 28, 120, 44)
 
     io_cli()
-    if keyboard.keyfifo.status + mouse.mousefifo.status == 0:
-      # io_stihlt()
-      io_sti()
+    if keyboard.fifo.status + mouse.fifo.status + tctrl.fifo.status == 0:
+      io_stihlt()
     else:
-      if keyboard.keyfifo.status != 0:  # for keyboard
-        let data = keyboard.keyfifo.get
+      if keyboard.fifo.status != 0:  # for keyboard
+        let data = keyboard.fifo.get
         io_sti()
         bufback.boxfill8(binfo.scrnx, Color.black, 0, 16, 8*4 - 1, 31)
         bufback.putasc8_format(binfo.scrnx, 0, 16, Color.white, "%x", cast[int](data))
         shtback.refresh(0, 16, 8*4, 32)
-      elif mouse.mousefifo.status != 0:  # for mouse
-        let data = mouse.mousefifo.get
+      elif mouse.fifo.status != 0:  # for mouse
+        let data = mouse.fifo.get
         io_sti()
         if mouse.decode(data):
           bufback.boxfill8(binfo.scrnx, Color.black, 0, 32, 8*5 - 1, 47)
@@ -118,6 +119,10 @@ proc MikanMain() {.exportc.} =
           bufback.boxfill8(binfo.scrnx, Color.black, 0, 48, 8*10 - 1, 64 - 1)
           bufback.putasc8_format(binfo.scrnx, 0, 48, Color.white, "%d, %d", mouse.x, mouse.y)
           shtback.refresh(0, 48, 8*10, 64)
-
           shtmouse.sheetSlide(mouse.x, mouse.y)
+      elif tctrl.fifo.status != 0:
+        let data = tctrl.fifo.get
+        io_sti()
+        bufback.putasc8_format(binfo.scrnx, 0, 64, Color.black, "%d[sec]", 3)
+        shtback.refresh(0, 64, 56, 80)
 

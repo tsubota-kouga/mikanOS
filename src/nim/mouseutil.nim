@@ -12,10 +12,10 @@ type
     Others
 
   Mouse = object
-    mousefifo*: FIFO
-    mousebuf*: array[bufsize, cuchar]
+    fifo*: FIFO[int8]
+    mousebuf*: array[bufsize, int8]
     shape*: array[16, array[16, Color]]
-    buf*: array[3, cuchar]
+    buf*: array[3, int8]
     phase*: int
     btn, x*, y*: int
 
@@ -34,7 +34,7 @@ proc enable_mouse() =
   io_out8(PORT_KEYDAT, MOUSECMD_ENABLE)
 
 proc init*(this: var Mouse, backgroundcolor: Color) =
-  this.mousefifo.init(bufsize, cast[ptr cuchar](this.mousebuf.addr))
+  this.fifo.init(bufsize, cast[ptr int8](this.mousebuf.addr))
   const CURSOR = [
     "*...............",
     "*o*.............",
@@ -66,7 +66,7 @@ proc init*(this: var Mouse, backgroundcolor: Color) =
   this.y = 100
   enable_mouse()
 
-proc decode*(this: var Mouse, data: cuchar): bool =
+proc decode*(this: var Mouse, data: int8): bool =
   case this.phase:
     of 0:
       this.phase = 1
@@ -114,6 +114,6 @@ func buttons*(this: Mouse): set[MouseButton] =
 proc inthandler2c(esp: ptr cint) {.exportc.} =
   io_out8(PIC1_OCW2, 0x64)
   io_out8(PIC0_OCW2, 0x62)
-  let data = cast[cuchar](io_in8(PORT_KEYDAT))
-  mouse.mousefifo.put(data)
+  let data = cast[int8](io_in8(PORT_KEYDAT))
+  mouse.fifo.put(data)
 

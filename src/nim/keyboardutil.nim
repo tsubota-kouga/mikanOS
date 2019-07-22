@@ -11,8 +11,8 @@ proc wait_KBC_sendready*() =
 const bufsize = 32
 type
   Keyboard = object
-    keyfifo*: FIFO
-    keybuf*: array[bufsize, cuchar]
+    fifo*: FIFO[int8]
+    keybuf*: array[bufsize, int8]
 
 var keyboard*: Keyboard
 
@@ -23,12 +23,12 @@ proc init_keyboard() =
   io_out8(PORT_KEYDAT, KBC_MODE)
 
 proc init*(this: var Keyboard) =
-  this.keyfifo.init(bufsize, cast[ptr cuchar](this.keybuf.addr))
+  this.fifo.init(bufsize, cast[ptr int8](this.keybuf.addr))
   init_keyboard()
 
 
 proc inthandler21(esp: ptr cint) {.exportc.} =
   io_out8(PIC0_OCW2, 0x61)
-  let data = cast[cuchar](io_in8(PORT_KEYDAT))
-  keyboard.keyfifo.put(data)
+  let data = cast[int8](io_in8(PORT_KEYDAT))
+  keyboard.fifo.put(data)
 
