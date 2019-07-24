@@ -37,16 +37,19 @@ proc createSheetControl*(m: ptr MemoryManager, vram: Vram, xsize, ysize: int): p
   ctl.xsize = xsize
   ctl.ysize = ysize
   ctl.top = -1
-  for i in 0 .. MaxSheets:
-    ctl.sheets0[i].flags = Unused
-    ctl.sheets0[i].ctl = ctl
+  for sheet0 in ctl.sheets0.mitems:
+    sheet0.flags = Unused
+    sheet0.ctl = ctl
+  # for i in 0 .. MaxSheets:
+  #   ctl.sheets0[i].flags = Unused
+  #   ctl.sheets0[i].ctl = ctl
   return ctl
 
 proc alloc*(ctl: ptr SheetControl): ptr Sheet =
   var sht: ptr Sheet
   for i in 0 .. MaxSheets:
     if ctl.sheets0[i].flags == Unused:
-      sht = cast[ptr Sheet](cast[int](ctl.sheets0.addr) + i*sizeof(Sheet))
+      sht = cast[ptr Sheet](ctl.sheets0[i].addr)
       sht.flags = Used
       sht.height = -1
       return sht

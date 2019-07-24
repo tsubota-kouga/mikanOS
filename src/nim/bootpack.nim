@@ -32,7 +32,8 @@ proc MikanMain() {.exportc.} =
   keyboard.init
   mouse.init(Color.invisible)
   tctrl.init
-  tctrl.set(300, 4'i8)
+  let tp = tctrl.set(3.sec, 4'i8)
+  let tp2 = tctrl.set(5.sec, 4'i8)
 
   var
     memorymanager = cast[ptr MemoryManager](MEMORY_ADDRESS)
@@ -81,16 +82,18 @@ proc MikanMain() {.exportc.} =
     shtwin.refresh(40, 28, 120, 44)
 
     io_cli()
-    if keyboard.fifo.status + mouse.fifo.status + tctrl.fifo.status == 0:
+    if keyboard.fifo.status == Empty and
+       mouse.fifo.status == Empty and
+       tp.fifo.status == Empty and tp2.fifo.status == Empty:
       io_stihlt()
     else:
-      if keyboard.fifo.status != 0:  # for keyboard
+      if keyboard.fifo.status == Got:  # for keyboard
         let data = keyboard.fifo.get
         io_sti()
         bufback.boxfill8(binfo.scrnx, Color.black, 0, 16, 8*4 - 1, 31)
         bufback.putasc8_format(binfo.scrnx, 0, 16, Color.white, "%x", cast[int](data))
         shtback.refresh(0, 16, 8*4, 32)
-      elif mouse.fifo.status != 0:  # for mouse
+      elif mouse.fifo.status == Got:  # for mouse
         let data = mouse.fifo.get
         io_sti()
         if mouse.decode(data):
@@ -120,9 +123,14 @@ proc MikanMain() {.exportc.} =
           bufback.putasc8_format(binfo.scrnx, 0, 48, Color.white, "%d, %d", mouse.x, mouse.y)
           shtback.refresh(0, 48, 8*10, 64)
           shtmouse.sheetSlide(mouse.x, mouse.y)
-      elif tctrl.fifo.status != 0:
-        let data = tctrl.fifo.get
+      elif tp.fifo.status == Got:
+        let data = tp.fifo.get
         io_sti()
         bufback.putasc8_format(binfo.scrnx, 0, 64, Color.black, "%d[sec]", 3)
         shtback.refresh(0, 64, 56, 80)
+      elif tp2.fifo.status == Got:
+        let data = tp2.fifo.get
+        io_sti()
+        bufback.putasc8_format(binfo.scrnx, 0, 80, Color.black, "%d[sec]", 5)
+        shtback.refresh(0, 80, 56, 96)
 

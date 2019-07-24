@@ -12,7 +12,7 @@ type
     Others
 
   Mouse = object
-    fifo*: FIFO[int8]
+    fifo*: Fifo[int8]
     mousebuf*: array[bufsize, int8]
     shape*: array[16, array[16, Color]]
     buf*: array[3, int8]

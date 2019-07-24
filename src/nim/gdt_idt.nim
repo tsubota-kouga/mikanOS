@@ -5,12 +5,12 @@ import util
 type
   SegmentDescripter = object
     limit_low, base_low: int16
-    base_mid, access_right: cuchar
-    limit_high, base_high: cuchar
+    base_mid, access_right: int8
+    limit_high, base_high: int8
 
   GateDescripter = object
     offset_low, selector: int16
-    dw_count, access_right: cuchar
+    dw_count, access_right: int8
     offset_high: int16
 
 proc asm_inthandler20() {.asmNoStackFrame.} =
@@ -94,7 +94,7 @@ proc init_gdtidt*() =
     idt = cast[ptr GateDescripter](ADR_IDT)
   for i in 0 .. LIMIT_GDT div 8:
     (gdt + i).set(0, 0, 0)
-  (gdt + 1).set(0xffffffff'i32, 0x00000000, AR_DATA32_RW)
+  (gdt + 1).set(high(int32), 0x00000000, AR_DATA32_RW)
   (gdt + 2).set(LIMIT_BOTPAK, ADR_BOTPAK, AR_CODE32_ER)
   load_gdtr(LIMIT_GDT, ADR_GDT)
 
@@ -116,15 +116,15 @@ proc set(sd: ptr SegmentDescripter, limit, base, ar: cint) =
     limit = limit div 0x1000
   sd.limit_low = cast[int16](limit and 0xffff)
   sd.base_low = cast[int16](base and 0xffff)
-  sd.base_mid = cast[cuchar]((base shr 16) and 0xff)
-  sd.access_right = cast[cuchar](ar and 0xff)
-  sd.limit_high = cast[cuchar](((limit shr 16) and 0x0f) or ((ar shr 8) and 0xf0))
-  sd.base_high = cast[cuchar]((base shr 24) and 0xff)
+  sd.base_mid = cast[int8]((base shr 16) and 0xff)
+  sd.access_right = cast[int8](ar and 0xff)
+  sd.limit_high = cast[int8](((limit shr 16) and 0x0f) or ((ar shr 8) and 0xf0))
+  sd.base_high = cast[int8]((base shr 24) and 0xff)
 
 proc set(gd: ptr GateDescripter, offset, selector, ar: cint) =
   gd.offset_low = cast[int16](offset and 0xffff)
   gd.selector = cast[int16](selector)
-  gd.dw_count = cast[cuchar]((ar shr 8) and 0xff)
-  gd.access_right = cast[cuchar](ar and 0xff)
+  gd.dw_count = cast[int8]((ar shr 8) and 0xff)
+  gd.access_right = cast[int8](ar and 0xff)
   gd.offset_high = cast[int16]((offset shr 16) and 0xffff)
 

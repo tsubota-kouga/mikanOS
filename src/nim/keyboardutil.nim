@@ -11,7 +11,7 @@ proc wait_KBC_sendready*() =
 const bufsize = 32
 type
   Keyboard = object
-    fifo*: FIFO[int8]
+    fifo*: Fifo[int8]
     keybuf*: array[bufsize, int8]
 
 var keyboard*: Keyboard

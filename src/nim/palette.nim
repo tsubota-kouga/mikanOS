@@ -1,7 +1,7 @@
 import low_layer
 from constant import table_rgb
 
-proc set_palette(head, tail: cint, rgb: array[16*3, uint8]) =
+proc set_palette(head, tail: int, rgb: array[16*3, uint8]) =
   let eflags = io_load_eflags()
   io_cli()
   io_out8(0x03c8, cast[uint16](head))
