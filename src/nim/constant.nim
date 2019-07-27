@@ -75,3 +75,15 @@ type Color* {.pure.} = enum
   dark_gray
   invisible
 
+type
+  FifoKind* {.pure.} = enum
+    Keyboard
+    Mouse
+    Timer
+
+  FifoDataType* = uint8
+  FifoType* = tuple
+    data: FifoDataType
+    kind: FifoKind
+
+const FifoSize* = 500

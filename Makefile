@@ -8,14 +8,14 @@ build:
 util/hankaku.nim: util/hankaku.txt Makefile
 	nim c -r util/hankaku2nim.nim
 
-build/ipl.bin: src/asm/ipl.asm Makefile build
-	nasm -f bin src/asm/ipl.asm -o build/ipl.bin -l build/ipl.lst
+build/ipl.bin: src/asm/ipl.nasm Makefile build
+	nasm -f bin src/asm/ipl.nasm -o build/ipl.bin -l build/ipl.lst
 
-build/asmhead.bin: src/asm/asmhead.asm Makefile build
-	nasm -f bin src/asm/asmhead.asm -o build/asmhead.bin -l build/asmhead.lst
+build/asmhead.bin: src/asm/asmhead.nasm Makefile build
+	nasm -f bin src/asm/asmhead.nasm -o build/asmhead.bin -l build/asmhead.lst
 
-build/nasmfunc.o: src/asm/nasmfunc.asm Makefile
-	nasm -f elf src/asm/nasmfunc.asm -o build/nasmfunc.o -l build/nasmfunc.lst
+build/nasmfunc.o: src/asm/nasmfunc.nasm Makefile
+	nasm -f elf src/asm/nasmfunc.nasm -o build/nasmfunc.o -l build/nasmfunc.lst
 
 build/bootpack.bin: src/nim/*.nim util/hankaku.nim src/nim/bootpack.nim.cfg Makefile build
 	nim c -d:release src/nim/bootpack.nim

@@ -30,10 +30,8 @@ func memtest_sub*(head, tail: uint): uint =
 
 proc memtest*(head, tail: uint): uint =
   var
-    flg486: int16 = 0
+    flg486 = 0'i16
     eflg = cast[cint](io_load_eflags() or EFLAGS_AC_BIT)
-    cr0: cint
-    i: uint
   io_store_eflags(eflg)
   eflg = io_load_eflags()
   if((eflg and EFLAGS_AC_BIT) != 0):
@@ -41,15 +39,12 @@ proc memtest*(head, tail: uint): uint =
   eflg = eflg and not EFLAGS_AC_BIT
   io_store_eflags(eflg)
   if flg486 != 0:
-    cr0 = load_cr0()
-    cr0 = cr0 or CR0_CACHE_DISABLE
+    let cr0 = load_cr0() or CR0_CACHE_DISABLE
     store_cr0(cr0)
-  i = memtest_sub(head, tail)
+  result = memtest_sub(head, tail)
   if flg486 != 0:
-    cr0 = load_cr0()
-    cr0 = cr0 and not CR0_CACHE_DISABLE
+    let cr0 = load_cr0() and not CR0_CACHE_DISABLE
     store_cr0(cr0)
-  return i
 
 const MEMORY_FREES = 4090
 
@@ -129,5 +124,7 @@ proc free4k*(this: ptr MemoryManager, address, size: uint): bool {.discardable.}
 
 proc memmove(dest: pointer, src: pointer, count: int): pointer {.exportc.} =
   for i in 0 ..< count:
-    cast[ptr cuchar](cast[int](dest) + i*sizeof(cuchar))[] = cast[ptr cuchar](cast[int](src) + i*sizeof(cuchar))[]
+    cast[ptr cuchar](cast[int](dest) + i*sizeof(cuchar))[] =
+      cast[ptr cuchar](cast[int](src) + i*sizeof(cuchar))[]
   return dest
+

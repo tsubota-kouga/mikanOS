@@ -1,3 +1,4 @@
+
 import low_layer
 import constant
 import fifo
@@ -9,76 +10,87 @@ const
   MaxTimer = 500
   bufsize = 8
 
-template sec*(n: int): auto =
+template s*(n: int): auto =
   n * 100
 
-template msec*(n: int): auto =
+template ms*(n: int): auto =
   n div 10
 
 type
-  TimerStatus = enum
+  TimerStatus {.pure.} = enum
     Unused
     Alloc
     Used
-  Timer = object
+  Timer[T] = object
+    next: ptr Timer[T]
     timeout*: int
     status: TimerStatus
-    buf: array[bufsize, int8]
-    fifo*: FIFO[int8]
-    data: int8
+    fifo*: ptr FIFO[T]
+    data: T
 
-  TimerCtrl = object
-    count, next, size: int
-    timers0: array[MaxTimer, Timer]
-    timers: array[MaxTimer, ptr Timer]
+  TimerCtrl[T] = object
+    count, next: int
+    timers0: array[MaxTimer, Timer[T]]
+    t0: ptr Timer[T]
+    buf: array[bufsize, T]
+    fifo*: ptr Fifo[T]
 
-proc alloc(this: var TimerCtrl): ptr Timer =
+proc alloc[T](this: var TimerCtrl[T]): ptr Timer[T] =
   for t in this.timers0.mitems:
-    if t.status == Unused:
-      t.status = Alloc
-      return cast[ptr Timer](t.addr)
+    if t.status == TimerStatus.Unused:
+      t.status = TimerStatus.Alloc
+      return cast[ptr Timer[T]](t.addr)
   return nil
 
 proc free*(tp: ptr Timer) =
-  tp.status = Unused
+  tp.status = TimerStatus.Unused
 
-proc init*(this: var TimerCtrl) =
+proc init*[T](this: var TimerCtrl[T], fifoptr: ptr Fifo[T]) =
   this.count = 0
   this.next = high(int)
+  this.fifo = fifoptr
   for t in this.timers0.mitems:
-    t.fifo.init(bufsize, cast[ptr int8](t.buf.addr))
+    t.fifo = this.fifo
     t.timeout = 0
-    t.status = Unused
-    t.data = 0
+    t.status = TimerStatus.Unused
+    t.data = cast[T](0)
+  let t = this.alloc
+  t.timeout = high(int)
+  t.status = TimerStatus.Used
+  t.next = nil
+  this.t0 = t
+  this.next = high(int)
 
-proc get*(this: TimerCtrl): int =
+proc count*(this: TimerCtrl): int =
   this.count
 
-proc set*(this: var TimerCtrl, timeout: int, data: int8): ptr Timer =
+proc set*[T](this: var TimerCtrl[T], timeout: int, data: T): bool =
   let tp = this.alloc
+  if tp.isNil:
+    return false
   tp.timeout = timeout + this.count
   tp.data = data
-  tp.status = Used
+  tp.status = TimerStatus.Used
   let e = io_load_eflags()
   io_cli()
-  var i = 0
-  while i < this.size:
-    if this.timers[i].timeout >= tp.timeout:
-      break
-    i.inc
-  for j in countdown(this.size, i + 1):
-    this.timers[j] = this.timers[j - 1]
-  this.size.inc
-  this.timers[i] = tp
-  this.next = this.timers[0].timeout
-  io_store_eflags(e)
-  return tp
+  var t = this.t0
+  if tp.timeout <= t.timeout:
+    this.t0 = tp
+    tp.next = t
+    this.next = tp.timeout
+    io_store_eflags(e)
+    return true
+  var s = t
+  while true:
+    s = t
+    t = t.next
+    if tp.timeout <= t.timeout:
+      s.next = tp
+      tp.next = t
+      io_store_eflags(e)
+      return true
 
-proc status*(this: var TimerCtrl): bool =
-  this.count == MaxTimer
-
-
-var tctrl*: TimerCtrl
+var tctrl*: TimerCtrl[FifoType]
 
 proc init_pit*() =
   io_out8(PIC_CTRL, 0x34)
@@ -90,20 +102,15 @@ proc inthandler20(esp: ptr cint) {.exportc.} =
   tctrl.count.inc
   if tctrl.next > tctrl.count:
     return
-  var i = 0  # number of timeout
-  while i < tctrl.size:
-    if tctrl.timers[i].timeout > tctrl.count:
+  var
+    timer = tctrl.t0
+  while true:
+    if timer.timeout > tctrl.count:
       break
-    tctrl.timers[i].status = Alloc
-    tctrl.timers[i].fifo.put(tctrl.timers[i].data)
-    i.inc
+    timer.status = TimerStatus.Alloc
+    timer.fifo[].put(timer.data)
+    timer = timer.next
 
-  tctrl.size -= i
-  for j in 0 ..< tctrl.size:
-    tctrl.timers[j] = tctrl.timers[i + j]
-
-  if tctrl.size > 0:
-    tctrl.next = tctrl.timers[0].timeout
-  else:
-    tctrl.next = high(int)
+  tctrl.t0 = timer
+  tctrl.next = tctrl.t0.timeout
 

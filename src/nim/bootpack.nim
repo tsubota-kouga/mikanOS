@@ -29,16 +29,20 @@ proc MikanMain() {.exportc.} =
   io_out8(PIC0_IMR, 0xf8)
   io_out8(PIC1_IMR, 0xef)
 
-  keyboard.init
-  mouse.init(Color.invisible)
-  tctrl.init
-  let tp = tctrl.set(3.sec, 4'i8)
-  let tp2 = tctrl.set(5.sec, 4'i8)
+  var
+    buf: array[FifoSize, FifoType]
+    fifo = createFifo(buf)
+
+  keyboard.init(fifo.addr)
+  mouse.init(fifo.addr)
+  tctrl.init(fifo.addr)
+  discard tctrl.set(3.s, (data: 3'u8, kind: FifoKind.Timer))
+  discard tctrl.set(5.s, (data: 5'u8, kind: FifoKind.Timer))
 
   var
     memorymanager = cast[ptr MemoryManager](MEMORY_ADDRESS)
     memtotal = memtest(0x00400000'u, 0xbfffffff'u)
-  memorymanager.init()
+  memorymanager.init
   memorymanager.free(0x00001000'u, 0x0009e000'u)
   memorymanager.free(0x00400000'u, memtotal - 0x00400000'u)
 
@@ -76,50 +80,32 @@ proc MikanMain() {.exportc.} =
                          memorymanager.total div 1024'u)
 
   while true:
-    shtwin.putasc8_format(40, 28, Color.black, Color.gray, "%d", tctrl.get)
+    shtwin.putasc8_format(40, 28, Color.black, Color.gray, "%d", tctrl.count)
 
     io_cli()
-    if keyboard.fifo.status == Empty and
-       mouse.fifo.status == Empty and
-       tp.fifo.status == Empty and tp2.fifo.status == Empty:
+    if keyboard.fifo[].status == Empty and
+       mouse.fifo[].status == Empty and
+       tctrl.fifo[].status == Empty:
       io_stihlt()
     else:
-      if keyboard.fifo.status == Got:  # for keyboard
-        let data = keyboard.fifo.get
+      if fifo.status == Got:
+        let (data, kind) = fifo.get
         io_sti()
-        shtback.putasc8_format(0, 16, Color.white, Color.black, "%4x", data)
-      elif mouse.fifo.status == Got:  # for mouse
-        let data = mouse.fifo.get
-        io_sti()
-        if mouse.decode(data):
-          shtback.putasc8_format(0, 32, Color.white, Color.black, "[lcr]", 0)
-          let b = mouse.buttons
-          if MouseButton.Right in b:
-            shtback.putasc8_format(24, 32, Color.white, Color.black, "R", 0)
-          if MouseButton.Left in b:
-            shtback.putasc8_format(8, 32, Color.white, Color.black, "L", 0)
-          if MouseButton.Center in b:
-            shtback.putasc8_format(16, 32, Color.white, Color.black, "C", 0)
-
-          shtback.refresh(0, 32, 8*5, 48)
-          if mouse.x < 0:
-            mouse.x = 0
-          elif cast[int](binfo.scrnx) - 1 < mouse.x:
-            mouse.x = cast[int](binfo.scrnx) - 1
-          if mouse.y < 0:
-            mouse.y = 0
-          elif cast[int](binfo.scrny) - 1 < mouse.y:
-            mouse.y = cast[int](binfo.scrny) - 1
-          shtback.putasc8_format(0, 48, Color.white, Color.black, "%3d, %3d", mouse.x, mouse.y)
+        if kind == FifoKind.Mouse:
+          if mouse.decode(data, binfo):
+            shtback.putasc8_format(0, 32, Color.white, Color.black, "[lcr]", 0)
+            let b = mouse.buttons
+            if MouseButton.Right in b:
+              shtback.putasc8_format(24, 32, Color.white, Color.black, "R", 0)
+            if MouseButton.Left in b:
+              shtback.putasc8_format(8, 32, Color.white, Color.black, "L", 0)
+            if MouseButton.Center in b:
+              shtback.putasc8_format(16, 32, Color.white, Color.black, "C", 0)
+            shtback.putasc8_format(0, 48, Color.white, Color.black, "%3d, %3d", mouse.x, mouse.y)
           shtmouse.sheetSlide(mouse.x, mouse.y)
-      elif tp.fifo.status == Got:
-        let data = tp.fifo.get
-        io_sti()
-        shtback.putasc8_format(0, 64, Color.black, Color.invisible, "%d[sec]", 3)
-        shtback.refresh(0, 64, 56, 80)
-      elif tp2.fifo.status == Got:
-        let data = tp2.fifo.get
-        io_sti()
-        shtback.putasc8_format(0, 80, Color.black, Color.invisible, "%d[sec]", 5)
-        shtback.refresh(0, 80, 56, 96)
+
+        elif kind == FifoKind.Keyboard:
+          shtback.putasc8_format(0, 16, Color.white, Color.black, "%4x", data)
+        elif kind == FifoKind.Timer:
+          shtback.putasc8_format(0, 64, Color.white, Color.black, "%d[sec]", data)
 

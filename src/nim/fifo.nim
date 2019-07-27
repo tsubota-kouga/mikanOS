@@ -1,33 +1,30 @@
 
-const
-  FLAGS_OVERRUN = 0x0001
-
 type
   Fifo*[T] = object
     buf: ptr T
-    p, q, size, free, flags: int
-  Status* = enum
+    p, q, size, free: int
+  Status* {.pure.} = enum
     Empty
     Got
 
-proc init*[T](this: var Fifo[T], size: int, buf: ptr T) =
-  this.size = size
-  this.buf = buf
-  this.free = size
-  this.flags = 0
-  this.p = 0
-  this.q = 0
+proc createFifo*[N: static[int], T](buf: var array[N, T]): Fifo[T] =
+  Fifo[T](
+    size: N,
+    buf: cast[ptr T](buf.addr),
+    free: N,
+    p: 0,
+    q: 0
+  )
 
-proc put*[T](this: var Fifo[T], data: T): int {.discardable.} =
+proc put*[T](this: var Fifo[T], data: T): bool {.discardable.} =
   if this.free == 0:
-    this.flags = this.flags or FLAGS_OVERRUN
-    return -1
+    return false
   (cast[ptr T](cast[int](this.buf) + sizeof(T)*this.p))[] = data
   this.p.inc
   if this.p == this.size:
     this.p = 0
   this.free.dec
-  return 0
+  return true
 
 proc get*[T](this: var Fifo[T]): T =
   if this.free == this.size:  # empty buffer
@@ -41,8 +38,8 @@ proc get*[T](this: var Fifo[T]): T =
 
 proc status*[T](this: Fifo[T]): Status =
   return
-    if (this.size - this.free) == 0:
-      Empty
+    if this.size == this.free:
+      Status.Empty
     else:
-      Got
+      Status.Got
 

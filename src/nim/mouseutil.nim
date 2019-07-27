@@ -2,6 +2,7 @@ import fifo
 import constant
 import low_layer
 from keyboardutil import wait_KBC_sendready
+import display
 
 const bufsize = 128
 type
@@ -12,14 +13,11 @@ type
     Others
 
   Mouse = object
-    fifo*: Fifo[int8]
-    mousebuf*: array[bufsize, int8]
+    fifo*: ptr Fifo[FifoType]
     shape*: array[16, array[16, Color]]
-    buf*: array[3, int8]
+    btnbuf*: array[3, FifoDataType]
     phase*: int
     btn, x*, y*: int
-
-var mouse*: Mouse
 
 func `[]`*(this: Mouse, row, col: int): Color =
   return this.shape[row][col]
@@ -33,8 +31,8 @@ proc enable_mouse() =
   wait_KBC_sendready()
   io_out8(PORT_KEYDAT, MOUSECMD_ENABLE)
 
-proc init*(this: var Mouse, backgroundcolor: Color) =
-  this.fifo.init(bufsize, cast[ptr int8](this.mousebuf.addr))
+proc init*(this: var Mouse, fifoptr: ptr Fifo[FifoType], backgroundcolor = Color.invisible) =
+  this.fifo = fifoptr
   const CURSOR = [
     "*...............",
     "*o*.............",
@@ -66,26 +64,36 @@ proc init*(this: var Mouse, backgroundcolor: Color) =
   this.y = 100
   enable_mouse()
 
-proc decode*(this: var Mouse, data: int8): bool =
+proc decode*(this: var Mouse, data: FifoDataType, binfo: ptr BootInfo): bool =
   case this.phase:
     of 0:
       this.phase = 1
     of 1, 2:
-      this.buf[this.phase - 1] = data
+      this.btnbuf[this.phase - 1] = data
       this.phase += 1
     of 3:
-      this.buf[2] = data
-      this.btn = cast[int](this.buf[0]) and 0x07
+      this.btnbuf[2] = data
+      this.btn = cast[int](this.btnbuf[0]) and 0x07
       this.x =
-        if (cast[int](this.buf[0]) and 0x10) != 0:
-          (cast[int](this.buf[1]) or 0xffffff00'i32) + this.x
+        if (cast[int](this.btnbuf[0]) and 0x10) != 0:
+          (cast[int](this.btnbuf[1]) or 0xffffff00'i32) + this.x
         else:
-          cast[int](this.buf[1]) + this.x
+          cast[int](this.btnbuf[1]) + this.x
+      if this.x < 0:
+        this.x = 0
+      elif cast[int](binfo.scrnx) - 1 < this.x:
+        this.x = cast[int](binfo.scrnx) - 1
+
       this.y =
-        if (cast[int](this.buf[0]) and 0x20) != 0:
-          -(cast[int](this.buf[2]) or 0xffffff00'i32) + this.y
+        if (cast[int](this.btnbuf[0]) and 0x20) != 0:
+          -(cast[int](this.btnbuf[2]) or 0xffffff00'i32) + this.y
         else:
-          -cast[int](this.buf[2]) + this.y
+          -cast[int](this.btnbuf[2]) + this.y
+      if this.y < 0:
+        this.y = 0
+      elif cast[int](binfo.scrny) - 1 < this.y:
+        this.y = cast[int](binfo.scrny) - 1
+
       this.phase = 1
       return true
     else:
@@ -111,9 +119,14 @@ func buttons*(this: Mouse): set[MouseButton] =
   if (this.btn and 0x04) != 0:
     result.incl MouseButton.Center
 
+var mouse*: Mouse
+
 proc inthandler2c(esp: ptr cint) {.exportc.} =
   io_out8(PIC1_OCW2, 0x64)
   io_out8(PIC0_OCW2, 0x62)
-  let data = cast[int8](io_in8(PORT_KEYDAT))
-  mouse.fifo.put(data)
+  let mousedata = (
+    data: cast[FifoDataType](io_in8(PORT_KEYDAT)),
+    kind: FifoKind.Mouse
+  )
+  mouse.fifo[].put(mousedata)
 
