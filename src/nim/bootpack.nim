@@ -58,9 +58,9 @@ proc MikanMain() {.exportc.} =
   shtmouse.setbuf(cast[Vram](mouse.shape.addr), 16, 16)
   shtwin.setbuf(bufwin, 160, 52)
 
-  bufback.init_screen(binfo.scrnx, binfo.scrny)
+  shtback.init_screen(binfo.scrnx, binfo.scrny)
 
-  bufwin.createWindow8(160, 52, "Timer")
+  shtwin.createWindow8(160, 52, "Timer")
 
   shtback.sheetSlide(0, 0)
   shtmouse.sheetSlide(mouse.x, mouse.y)
@@ -70,16 +70,13 @@ proc MikanMain() {.exportc.} =
   shtwin.sheetUpdown(1)
   shtmouse.sheetUpdown(2)
 
-  bufback.putasc8_format(binfo.scrnx, 0, 0, Color.white,
-                       "memory: %dMB, free: %dKB",
-                       memtotal div (1024'u*1024'u),
-                       memorymanager.total div 1024'u)
-  shtback.refresh(0, 0, binfo.scrnx, 48)
+  shtback.putasc8_format(0, 0, Color.white, Color.black,
+                         "memory: %dMB, free: %dKB",
+                         memtotal div (1024'u*1024'u),
+                         memorymanager.total div 1024'u)
 
   while true:
-    bufwin.boxfill8(160, Color.gray, 40, 28, 119, 43)
-    bufwin.putasc8_format(160, 40, 28, Color.black, "%d", tctrl.get)
-    shtwin.refresh(40, 28, 120, 44)
+    shtwin.putasc8_format(40, 28, Color.black, Color.gray, "%d", tctrl.get)
 
     io_cli()
     if keyboard.fifo.status == Empty and
@@ -90,25 +87,19 @@ proc MikanMain() {.exportc.} =
       if keyboard.fifo.status == Got:  # for keyboard
         let data = keyboard.fifo.get
         io_sti()
-        bufback.boxfill8(binfo.scrnx, Color.black, 0, 16, 8*4 - 1, 31)
-        bufback.putasc8_format(binfo.scrnx, 0, 16, Color.white, "%x", cast[int](data))
-        shtback.refresh(0, 16, 8*4, 32)
+        shtback.putasc8_format(0, 16, Color.white, Color.black, "%4x", data)
       elif mouse.fifo.status == Got:  # for mouse
         let data = mouse.fifo.get
         io_sti()
         if mouse.decode(data):
-          bufback.boxfill8(binfo.scrnx, Color.black, 0, 32, 8*5 - 1, 47)
-          bufback.putasc8(binfo.scrnx, 0, 32, Color.white, "[lcr]")
+          shtback.putasc8_format(0, 32, Color.white, Color.black, "[lcr]", 0)
           let b = mouse.buttons
           if MouseButton.Right in b:
-            bufback.putasc8(binfo.scrnx, 24, 32, Color.black, "r")
-            bufback.putasc8(binfo.scrnx, 24, 32, Color.white, "R")
+            shtback.putasc8_format(24, 32, Color.white, Color.black, "R", 0)
           if MouseButton.Left in b:
-            bufback.putasc8(binfo.scrnx, 8, 32, Color.black, "l")
-            bufback.putasc8(binfo.scrnx, 8, 32, Color.white, "L")
+            shtback.putasc8_format(8, 32, Color.white, Color.black, "L", 0)
           if MouseButton.Center in b:
-            bufback.putasc8(binfo.scrnx, 16, 32, Color.black, "c")
-            bufback.putasc8(binfo.scrnx, 16, 32, Color.white, "C")
+            shtback.putasc8_format(16, 32, Color.white, Color.black, "C", 0)
 
           shtback.refresh(0, 32, 8*5, 48)
           if mouse.x < 0:
@@ -119,18 +110,16 @@ proc MikanMain() {.exportc.} =
             mouse.y = 0
           elif cast[int](binfo.scrny) - 1 < mouse.y:
             mouse.y = cast[int](binfo.scrny) - 1
-          bufback.boxfill8(binfo.scrnx, Color.black, 0, 48, 8*10 - 1, 64 - 1)
-          bufback.putasc8_format(binfo.scrnx, 0, 48, Color.white, "%d, %d", mouse.x, mouse.y)
-          shtback.refresh(0, 48, 8*10, 64)
+          shtback.putasc8_format(0, 48, Color.white, Color.black, "%3d, %3d", mouse.x, mouse.y)
           shtmouse.sheetSlide(mouse.x, mouse.y)
       elif tp.fifo.status == Got:
         let data = tp.fifo.get
         io_sti()
-        bufback.putasc8_format(binfo.scrnx, 0, 64, Color.black, "%d[sec]", 3)
+        shtback.putasc8_format(0, 64, Color.black, Color.invisible, "%d[sec]", 3)
         shtback.refresh(0, 64, 56, 80)
       elif tp2.fifo.status == Got:
         let data = tp2.fifo.get
         io_sti()
-        bufback.putasc8_format(binfo.scrnx, 0, 80, Color.black, "%d[sec]", 5)
+        shtback.putasc8_format(0, 80, Color.black, Color.invisible, "%d[sec]", 5)
         shtback.refresh(0, 80, 56, 96)
 

@@ -35,9 +35,17 @@ proc num2hexstr*[N: static[int], T](a: var array[N, cuchar], num: T) {.deprecate
       a[N - cnt] = cast[cuchar](n + ord('A') - 0xa)
     num = num shr 4
 
-proc num2str*[S: static[int], T](a: var array[S, cuchar], num: T, N: int=10): int {.discardable.} =
-  var num = num
-  var cnt = 0
+proc num2str*[S: static[int], T: SomeInteger](a: var array[S, cuchar], num: T, N: int=10): int {.discardable.} =
+  ## @Return:
+  ##    number of digits
+  var
+    negative = T is SomeSignedInt and num < 0
+    num =
+      when T is SomeSignedInt:
+        num.abs
+      else:
+        num
+    cnt = 0
   while num != cast[T](0):
     cnt.inc
     let n = num - ((num div cast[T](N)) * cast[T](N))
@@ -49,5 +57,8 @@ proc num2str*[S: static[int], T](a: var array[S, cuchar], num: T, N: int=10): in
   if cnt == 0:
     cnt.inc
     a[S - cnt] = '0'
+  if negative:
+    cnt.inc
+    a[S - cnt] = '-'
   return cnt
 

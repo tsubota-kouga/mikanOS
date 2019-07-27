@@ -10,8 +10,8 @@ type
     Used
 
   VramMap = ArithmeticPtr[int8]
-  Sheet = object
-    buf: Vram
+  Sheet* = object
+    buf*: Vram
     bxsize, bysize: int
     vx0, vy0: int
     col_inv, height: int
@@ -40,9 +40,6 @@ proc createSheetControl*(m: ptr MemoryManager, vram: Vram, xsize, ysize: int): p
   for sheet0 in ctl.sheets0.mitems:
     sheet0.flags = Unused
     sheet0.ctl = ctl
-  # for i in 0 .. MaxSheets:
-  #   ctl.sheets0[i].flags = Unused
-  #   ctl.sheets0[i].ctl = ctl
   return ctl
 
 proc alloc*(ctl: ptr SheetControl): ptr Sheet =
@@ -59,11 +56,6 @@ proc setbuf*(sht: ptr Sheet, buf: Vram, xsize, ysize: int) =
   sht.buf = buf
   sht.bxsize = xsize
   sht.bysize = ysize
-
-# proc `[]`(p: ptr int8, idx: int): int8 =
-#   cast[ptr int8](cast[int](p) + idx*sizeof(int8))[]
-# proc `[]=`(p: ptr int8, idx: int, i: int8) =
-#   cast[ptr int8](cast[int](p) + idx*sizeof(int8))[] = i
 
 proc refreshMap(ctl: ptr SheetControl, vx0, vy0, vx1, vy1, h0: int) =
   var map = ctl.map
@@ -190,4 +182,69 @@ proc sheetFree(sht: ptr Sheet) =
   if sht.height >= 0:
     sht.sheetUpdown(-1)
   sht.flags = Unused
+
+proc putasc8*(sht: ptr Sheet, x, y: int, color, background_color: Color, c: char) =
+  sht.buf.boxfill8(sht.bxsize, background_color, x, y, x + 7, y + 15)
+  sht.buf.putfont8(sht.bxsize, x, y, color, fonts[c.ord])
+  sht.refresh(x, y, x + 8, y + 16)
+
+proc putasc8_format*(sht: ptr Sheet, x, y: int, color, background_color: Color, str: string|cstring, args: varargs[SomeInteger]) =
+  var
+    caret = x
+    i = 0
+    argidx = 0
+  while i < str.len:
+    if str[i] == '%':
+      var size = 0
+      while i + 1 < str.len and '0' <= str[i + 1] and str[i + 1] <= '9':
+        size = size*10 + str[i + 1].ord - '0'.ord
+        i.inc
+      if (i + 1) < str.len:
+        case str[i + 1]:
+          of '%':
+            sht.putasc8(caret, y, color, background_color, '%')
+            i += 2
+            caret += 8
+          of 'd', 'x', 'o':
+            let N =
+              case str[i + 1]:
+                of 'd': 10
+                of 'x': 16
+                of 'o': 8
+                else: 10
+            let num = args[argidx]
+            argidx.inc
+            var numstr: array[80, char]
+            var cnt = numstr.num2str(num, N)
+            for j in countdown(max(cnt, size) - 1, 0):
+              if j < cnt:
+                sht.putasc8(caret, y, color, background_color, numstr[numstr.len - j - 1])
+              else:
+                sht.putasc8(caret, y, color, background_color, ' ')
+              caret += 8
+            i += 2
+          else: # Error case
+            discard
+    else:
+      sht.putasc8(caret, y, color, background_color, str[i])
+      i.inc
+      caret += 8
+
+proc init_screen*(sht: ptr Sheet, xsize, ysize: int) =
+  sht.buf.boxfill8(xsize, Color.dark_gray , 0          , 0         , xsize - 1 , ysize - 29)
+  sht.buf.boxfill8(xsize, Color.gray      , 0          , ysize - 28, xsize - 1 , ysize - 28)
+  sht.buf.boxfill8(xsize, Color.white     , 0          , ysize - 27, xsize - 1 , ysize - 27)
+  sht.buf.boxfill8(xsize, Color.gray      , 0          , ysize - 26, xsize - 1 , ysize - 1 )
+
+  sht.buf.boxfill8(xsize, Color.white     , 3          , ysize - 24, 59        , ysize - 24)
+  sht.buf.boxfill8(xsize, Color.white     , 2          , ysize - 24, 2         , ysize - 4 )
+  sht.buf.boxfill8(xsize, Color.dark_gray , 3          , ysize - 4 , 59        , ysize - 4 )
+  sht.buf.boxfill8(xsize, Color.dark_gray , 59         , ysize - 23, 59        , ysize - 5 )
+  sht.buf.boxfill8(xsize, Color.black     , 2          , ysize - 3 , 59        , ysize - 3 )
+  sht.buf.boxfill8(xsize, Color.black     , 60         , ysize - 24, 60        , ysize - 3 )
+
+  sht.buf.boxfill8(xsize, Color.dark_gray , xsize - 47 , ysize - 24, xsize - 4 , ysize - 24)
+  sht.buf.boxfill8(xsize, Color.dark_gray , xsize - 47 , ysize - 23, xsize - 47, ysize - 4 )
+  sht.buf.boxfill8(xsize, Color.white     , xsize - 47 , ysize - 3 , xsize - 4 , ysize - 3 )
+  sht.buf.boxfill8(xsize, Color.white     , xsize - 3  , ysize - 24, xsize - 3 , ysize - 3 )
 
