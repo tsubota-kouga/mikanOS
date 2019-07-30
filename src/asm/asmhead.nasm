@@ -12,13 +12,14 @@ SCRNY equ 0x0ff6                        ; resolution y
 VRAM equ 0x0ff8                         ; start address of graphic buffer
 
     org 0xc200                          ; where to be read this program
-    mov al, 0x13                        ; color
-    mov ah, 0x00
+
+    mov bx, 0x4105                      ; color
+    mov ax, 0x4f02
     int 0x10
     mov byte [VMODE], 8                 ; record screen mode
-    mov word [SCRNX], 320
-    mov word [SCRNY], 200
-    mov dword [VRAM], 0x000a0000
+    mov word [SCRNX], 1024
+    mov word [SCRNY], 768
+    mov dword [VRAM], 0xfd000000
 
 ; get status of keyboard from bios
 

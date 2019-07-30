@@ -9,7 +9,7 @@ type
     Unused
     Used
 
-  VramMap = ArithmeticPtr[int8]
+  VramMap = ArithmeticPtr[int16]
   Sheet* = object
     buf*: Vram
     bxsize, bysize: int
@@ -29,7 +29,7 @@ proc createSheetControl*(m: ptr MemoryManager, vram: Vram, xsize, ysize: int): p
   let ctl = cast[ptr SheetControl](m.alloc4k(cast[uint](sizeof(SheetControl))))
   if ctl.isNil:
     return nil
-  ctl.map = cast[VramMap](m.alloc4k(cast[uint](xsize*ysize*sizeof(int8))))
+  ctl.map = cast[VramMap](m.alloc4k(cast[uint](xsize*ysize*sizeof(int16))))
   if cast[pointer](ctl.map).isNil:
     m.free4k(cast[uint](ctl), cast[uint](sizeof(SheetControl)))
     return nil
@@ -68,7 +68,7 @@ proc refreshMap(ctl: ptr SheetControl, vx0, vy0, vx1, vy1, h0: int) =
   for h in h0 .. ctl.top:
     let
       sht = ctl.sheets[h]
-      sid = cast[int8](cast[int](sht) - cast[int](ctl.sheets0))
+      sid = cast[int16](cast[int](sht) - cast[int](ctl.sheets0))
     var
       buf = sht.buf
       bx0 = vx0 - sht.vx0
@@ -99,7 +99,7 @@ proc refreshSub(ctl: ptr SheetControl, vx0, vy0, vx1, vy1, h0, h1: int) =
   for h in h0 .. h1:
     let
       sht = ctl.sheets[h]
-      sid = cast[int8](cast[int](sht) - cast[int](ctl.sheets0))
+      sid = cast[int16](cast[int](sht) - cast[int](ctl.sheets0))
     var
       buf = sht.buf
       bx0 = vx0 - sht.vx0

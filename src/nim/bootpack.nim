@@ -81,7 +81,6 @@ proc MikanMain() {.exportc.} =
 
   while true:
     shtwin.putasc8_format(40, 28, Color.black, Color.gray, "%d", tctrl.count)
-
     io_cli()
     if keyboard.fifo[].status == Empty and
        mouse.fifo[].status == Empty and
@@ -91,21 +90,21 @@ proc MikanMain() {.exportc.} =
       if fifo.status == Got:
         let (data, kind) = fifo.get
         io_sti()
-        if kind == FifoKind.Mouse:
-          if mouse.decode(data, binfo):
-            shtback.putasc8_format(0, 32, Color.white, Color.black, "[lcr]", 0)
-            let b = mouse.buttons
-            if MouseButton.Right in b:
-              shtback.putasc8_format(24, 32, Color.white, Color.black, "R", 0)
-            if MouseButton.Left in b:
-              shtback.putasc8_format(8, 32, Color.white, Color.black, "L", 0)
-            if MouseButton.Center in b:
-              shtback.putasc8_format(16, 32, Color.white, Color.black, "C", 0)
-            shtback.putasc8_format(0, 48, Color.white, Color.black, "%3d, %3d", mouse.x, mouse.y)
-          shtmouse.sheetSlide(mouse.x, mouse.y)
-
-        elif kind == FifoKind.Keyboard:
-          shtback.putasc8_format(0, 16, Color.white, Color.black, "%4x", data)
-        elif kind == FifoKind.Timer:
-          shtback.putasc8_format(0, 64, Color.white, Color.black, "%d[sec]", data)
+        case kind:
+          of FifoKind.Mouse:
+            if mouse.decode(data, binfo):
+              shtback.putasc8_format(0, 32, Color.white, Color.black, "[lcr]", 0)
+              let b = mouse.buttons
+              if MouseButton.Right in b:
+                shtback.putasc8_format(24, 32, Color.white, Color.black, "R", 0)
+              if MouseButton.Left in b:
+                shtback.putasc8_format(8, 32, Color.white, Color.black, "L", 0)
+              if MouseButton.Center in b:
+                shtback.putasc8_format(16, 32, Color.white, Color.black, "C", 0)
+              shtback.putasc8_format(0, 48, Color.white, Color.black, "%3d, %3d", mouse.x, mouse.y)
+            shtmouse.sheetSlide(mouse.x, mouse.y)
+          of FifoKind.Keyboard:
+            shtback.putasc8_format(0, 16, Color.white, Color.black, "%4x", data)
+          of FifoKind.Timer:
+            shtback.putasc8_format(0, 64, Color.white, Color.black, "%d[sec]", data)
 

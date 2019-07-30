@@ -14,6 +14,8 @@ template s*(n: int): auto =
   n * 100
 
 template ms*(n: int): auto =
+  when n mod 10 != 0:
+    {.warning: "`ms` cannot use the one's place".}
   n div 10
 
 type
