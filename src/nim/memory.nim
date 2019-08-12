@@ -51,23 +51,23 @@ const MEMORY_FREES = 4090
 type
   FreeInfo = object
     address, size: uint
-  MemoryManager* = object
+  MemoryManager* = ref object
     frees, maxfrees, lostsize, losts: uint
     freerealm: array[MEMORY_FREES, FreeInfo]
 
-func init*(this: ptr MemoryManager) =
+func init*(this: MemoryManager) =
   this.frees = 0
   this.maxfrees = 0
   this.lostsize = 0
   this.losts = 0
 
-func total*(this: ptr MemoryManager): uint =
+func total*(this: MemoryManager): uint =
   var t = 0'u
   for i in 0'u ..< this.frees:
     t += this.freerealm[i].size
   return t
 
-proc alloc*(this: ptr MemoryManager, size: uint): uint =
+proc alloc*(this: MemoryManager, size: uint): uint =
   for i in 0'u ..< this.frees:
     if this.freerealm[i].size >= size:
       let a = this.freerealm[i].address
@@ -80,7 +80,7 @@ proc alloc*(this: ptr MemoryManager, size: uint): uint =
       return a
   return 0
 
-proc free*(this: ptr MemoryManager, address, size: uint): bool {.discardable.} =
+proc free*(this: MemoryManager, address, size: uint): bool {.discardable.} =
   var i = 0'u
   while i < this.frees:
     if this.freerealm[i].address > address:
@@ -114,17 +114,63 @@ proc free*(this: ptr MemoryManager, address, size: uint): bool {.discardable.} =
   this.lostsize += size
   return false
 
-proc alloc4k*(this: ptr MemoryManager, size: uint): uint =
+proc alloc4k*(this: MemoryManager, size: uint): uint =
   let size = (size + 0xfff'u) and 0xfffff000'u
   return this.alloc(size)
 
-proc free4k*(this: ptr MemoryManager, address, size: uint): bool {.discardable.} =
+proc free4k*(this: MemoryManager, address, size: uint): bool {.discardable.} =
   let size = (size + 0xfff'u) and 0xfffff000'u
   return this.free(address, size)
 
-proc memmove(dest: pointer, src: pointer, count: int): pointer {.exportc.} =
-  for i in 0 ..< count:
-    cast[ptr cuchar](cast[int](dest) + i*sizeof(cuchar))[] =
-      cast[ptr cuchar](cast[int](src) + i*sizeof(cuchar))[]
+proc memmove(dest: pointer, src: pointer, n: csize): pointer {.exportc.} =
+  if dest < src and dest < cast[pointer](cast[csize](src) + n):
+    for i in countdown(n, 1):
+      cast[ptr cuchar](cast[int](dest) + i*sizeof(cuchar))[] =
+        cast[ptr cuchar](cast[int](src) + i*sizeof(cuchar))[]
+  else:
+    for i in 0 ..< n:
+      cast[ptr cuchar](cast[int](dest) + i*sizeof(cuchar))[] =
+        cast[ptr cuchar](cast[int](src) + i*sizeof(cuchar))[]
   return dest
 
+# {.emit: """
+# void *memmove(void *s1, const void *s2, size_t n)
+# {
+#     char       *p1 = (char *)s1;
+#     const char *p2 = (const char *)s2;
+#
+#     if (p1 < p2  &&  p1 < p2 + n)
+#         for (p1 += n, p1 += n; n > 0; n--)      /* 後ろからコピー */
+#             *p1-- = *p2--;
+#     else
+#         for ( ; n > 0; n--)                     /* 前からコピー */
+#             *p1++ = *p2++;
+#     return (s1);
+# }
+#
+# void *memset(void *s, int c, size_t n)
+# {
+#     const unsigned char uc = c;
+#     unsigned char       *p = (unsigned char *)s;
+#
+#     while (n-- > 0)
+#         *p++ = uc;
+#
+#     return (s);
+# }
+#
+# void *memcpy(void *s1, const void *s2, size_t n)
+# {
+#     char        *p1 = (char *)s1;
+#     const char  *p2 = (const char *)s2;
+#
+#     while (n-- > 0) {
+#         *p1 = *p2;
+#         p1++;
+#         p2++;
+#     }
+#     return (s1);
+# }
+#
+# """.}
+#

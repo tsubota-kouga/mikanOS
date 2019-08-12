@@ -14,7 +14,7 @@ import mouseutil
 import int
 import memory
 import sheet
-import window
+import widget
 from timer import tctrl
 import timer
 
@@ -36,11 +36,12 @@ proc MikanMain() {.exportc.} =
   keyboard.init(fifo.addr)
   mouse.init(fifo.addr)
   tctrl.init(fifo.addr)
+  discard tctrl.set(1.s, (data: 1'u8, kind: FifoKind.Timer))
   discard tctrl.set(3.s, (data: 3'u8, kind: FifoKind.Timer))
   discard tctrl.set(5.s, (data: 5'u8, kind: FifoKind.Timer))
 
   var
-    memorymanager = cast[ptr MemoryManager](MEMORY_ADDRESS)
+    memorymanager = cast[MemoryManager](MEMORY_ADDRESS)
     memtotal = memtest(0x00400000'u, 0xbfffffff'u)
   memorymanager.init
   memorymanager.free(0x00001000'u, 0x0009e000'u)
@@ -48,7 +49,7 @@ proc MikanMain() {.exportc.} =
 
   init_palette()
   var
-    shtctl = createSheetControl(memorymanager, binfo.vram, binfo.scrnx, binfo.scrny)
+    shtctl = memorymanager.createSheetControl(binfo.vram, binfo.scrnx, binfo.scrny)
 
     shtback = shtctl.alloc()
     shtmouse = shtctl.alloc()
@@ -64,7 +65,8 @@ proc MikanMain() {.exportc.} =
 
   shtback.init_screen(binfo.scrnx, binfo.scrny)
 
-  shtwin.createWindow8(160, 52, "Timer")
+  shtwin.createWindow8("Window")
+  shtwin.createLineEdit8(8, 28, 144, 16, Color.white)
 
   shtback.sheetSlide(0, 0)
   shtmouse.sheetSlide(mouse.x, mouse.y)
@@ -79,8 +81,8 @@ proc MikanMain() {.exportc.} =
                          memtotal div (1024'u*1024'u),
                          memorymanager.total div 1024'u)
 
+  var editCursor = 50
   while true:
-    shtwin.putasc8_format(40, 28, Color.black, Color.gray, "%d", tctrl.count)
     io_cli()
     if keyboard.fifo[].status == Empty and
        mouse.fifo[].status == Empty and
@@ -97,14 +99,26 @@ proc MikanMain() {.exportc.} =
               let b = mouse.buttons
               if MouseButton.Right in b:
                 shtback.putasc8_format(24, 32, Color.white, Color.black, "R", 0)
+                shtwin.sheetSlide(mouse.x - 80, mouse.y - 8)
               if MouseButton.Left in b:
                 shtback.putasc8_format(8, 32, Color.white, Color.black, "L", 0)
               if MouseButton.Center in b:
                 shtback.putasc8_format(16, 32, Color.white, Color.black, "C", 0)
-              shtback.putasc8_format(0, 48, Color.white, Color.black, "%3d, %3d", mouse.x, mouse.y)
+              shtback.putasc8_format(0, 48, Color.white, Color.black, "%4d, %4d", mouse.x, mouse.y)
             shtmouse.sheetSlide(mouse.x, mouse.y)
           of FifoKind.Keyboard:
+            if data == KeyCode.Backspace.ord:
+              editCursor -= 8
+              shtwin.putasc8(editCursor, 28, Color.black, Color.white, KeyTable[KeyCode.Space.ord])
+            elif data < 0x80:
+              shtwin.putasc8(editCursor, 28, Color.black, Color.white, KeyTable[data])
+              editCursor += 8
+            # shtwin.putasc8_format(40, 28, Color.black, Color.gray, $KeyCode(data), 0)
             shtback.putasc8_format(0, 16, Color.white, Color.black, "%4x", data)
           of FifoKind.Timer:
+            # if data == 1:
+            #   discard tctrl.set(1.s, (data: 1'u8, kind: FifoKind.Timer))
+            #   shtwin.putasc8(editCursor, 28, Color.black, Color.black, ' ')
+
             shtback.putasc8_format(0, 64, Color.white, Color.black, "%d[sec]", data)
 

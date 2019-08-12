@@ -25,7 +25,12 @@ type
     sheets: array[MaxSheets, ptr Sheet]
     sheets0: array[MaxSheets, Sheet]
 
-proc createSheetControl*(m: ptr MemoryManager, vram: Vram, xsize, ysize: int): ptr SheetControl =
+proc bysize*(sht: ptr Sheet): int =
+  sht.bysize
+proc bxsize*(sht: ptr Sheet): int =
+  sht.bxsize
+
+proc createSheetControl*(m: MemoryManager, vram: Vram, xsize, ysize: int): ptr SheetControl =
   let ctl = cast[ptr SheetControl](m.alloc4k(cast[uint](sizeof(SheetControl))))
   if ctl.isNil:
     return nil

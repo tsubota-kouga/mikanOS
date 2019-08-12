@@ -3,7 +3,7 @@ import util
 import display
 import sheet
 
-proc createWindow8*(sht: ptr Sheet, xsize, ysize: int, title: cstring) =
+proc createWindow8*(sht: ptr Sheet, title: cstring) =
   const CLOSEBUTTON = [
     "ooooooooooooooo.",
     "o%%%%%%%%%%%%%$.",
@@ -20,6 +20,9 @@ proc createWindow8*(sht: ptr Sheet, xsize, ysize: int, title: cstring) =
     "o$$$$$$$$$$$$$$.",
     "................"
   ]
+  let
+    xsize = sht.bxsize
+    ysize = sht.bysize
   sht.buf.boxfill8(xsize, Color.gray     , 0         , 0         , xsize - 1 , 0         )
   sht.buf.boxfill8(xsize, Color.black    , 1         , 1         , xsize - 2 , 1         )
   sht.buf.boxfill8(xsize, Color.gray     , 0         , 0         , 0         , ysize - 1 )
@@ -44,4 +47,18 @@ proc createWindow8*(sht: ptr Sheet, xsize, ysize: int, title: cstring) =
             Color.gray
           else:
             Color.white
+
+proc createLineEdit8*(sht: ptr Sheet, x0, y0, xsize, ysize: int, color: Color) =
+  let
+    x1 = x0 + xsize
+    y1 = y0 + ysize
+  sht.buf.boxfill8(sht.bxsize, Color.gray     , x0 - 2    , y0 - 3    , x1 + 1    , y0 - 3    )
+  sht.buf.boxfill8(sht.bxsize, Color.gray     , x0 - 3    , y0 - 3    , x0 + 1    , y1 + 1    )
+  sht.buf.boxfill8(sht.bxsize, Color.white    , x0 - 3    , y1 + 2    , x1 + 1    , y1 + 2    )
+  sht.buf.boxfill8(sht.bxsize, Color.white    , x1 + 2    , y0 - 3    , x1 + 2    , y1 + 2    )
+  sht.buf.boxfill8(sht.bxsize, Color.black    , x0 - 1    , y0 - 2    , x1 + 0    , y0 - 2    )
+  sht.buf.boxfill8(sht.bxsize, Color.black    , x0 - 2    , y0 - 2    , x0 - 2    , y1 + 0    )
+  sht.buf.boxfill8(sht.bxsize, Color.dark_gray, x0 - 2    , y1 + 1    , x1 + 0    , y1 + 1    )
+  sht.buf.boxfill8(sht.bxsize, Color.dark_gray, x1 + 1    , y0 - 2    , x1 + 1    , y1 + 1    )
+  sht.buf.boxfill8(sht.bxsize, color          , x0 - 1    , y0 - 1    , x1 + 0    , y1 + 0    )
 

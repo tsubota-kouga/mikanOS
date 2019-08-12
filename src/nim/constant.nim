@@ -1,3 +1,4 @@
+import util
 
 const
   ADR_IDT* = 0x0026f800
@@ -87,3 +88,105 @@ type
     kind: FifoKind
 
 const FifoSize* = 500
+
+type KeyCode* {.pure.} = enum
+  Esc = (0x01, "")
+  Num_1 = "1"
+  Num_2 = "2"
+  Num_3 = "3"
+  Num_4 = "4"
+  Num_5 = "5"
+  Num_6 = "6"
+  Num_7 = "7"
+  Num_8 = "8"
+  Num_9 = "9"
+  Num_0 = "0"
+  Minus = "-"
+  Caret = "^"
+  BackSpace = ""
+  Tab = ""
+  Q = "q"
+  W = "w"
+  E = "e"
+  R = "r"
+  T = "t"
+  Y = "y"
+  U = "u"
+  I = "i"
+  O = "o"
+  P = "p"
+  AtSign = "@"
+  LeftBracket = "]"
+  Enter = ""
+  LeftCtrl = ""
+  A = "a"
+  S = "s"
+  D = "d"
+  F = "f"
+  G = "g"
+  H = "h"
+  J = "j"
+  K = "k"
+  L = "l"
+  Semicolon = ";"
+  Colon = ":"
+  ZenkakuHankaku = ""
+  LeftShift = ""
+  RightBracket = "]"
+  Z = "z"
+  X = "x"
+  C = "c"
+  V = "v"
+  B = "b"
+  N = "n"
+  M = "m"
+  Comma = ","
+  Dot = "."
+  Slash = "/"
+  RightShift = ""
+  kNumAsterisk = "*"
+  LeftAlt = ""
+  Space = " "
+  CapsLock = ""
+  F1 = ""
+  F2 = ""
+  F3 = ""
+  F4 = ""
+  F5 = ""
+  F6 = ""
+  F7 = ""
+  F8 = ""
+  F9 = ""
+  F10 = ""
+  NumLock = ""
+  ScrollLock = ""
+  kNum_7 = "7"
+  kNum_8 = "8"
+  kNum_9 = "9"
+  kNumMinus = "-"
+  kNum_4 = "4"
+  kNum_5 = "5"
+  kNum_6 = "6"
+  kNumPlus = "-"
+  kNum_1 = "1"
+  kNum_2 = "2"
+  kNum_3 = "3"
+  kNum_0 = "0"
+  kNum_Dot = "."
+  SysReq = ""
+  F11 = (0x57, "")
+  F12 = ""
+  Hiragana = (0x70, "")
+  Underscore = (0x73, "")
+  Henkan = (0x79, "")
+  Muhenkan = (0x7B, "")
+  Backslash = (0x7D, "")
+
+const KeyTable* = [
+  '\0', '\0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+  '-', '^', '\0', '\0', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
+  '@', '[', '\0', '\0', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
+  ';', ':', '\0', '\0', ']', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/',
+  '\0', '*', '\0', ' ', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+  '\0', '\0', '\0', '\0', '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.'
+]
