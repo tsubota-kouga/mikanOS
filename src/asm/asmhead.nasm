@@ -10,19 +10,65 @@ VMODE equ 0x0ff2                        ; bit colors
 SCRNX equ 0x0ff4                        ; resolution x
 SCRNY equ 0x0ff6                        ; resolution y
 VRAM equ 0x0ff8                         ; start address of graphic buffer
+VBEMODE equ 0x105
 
     org 0xc200                          ; where to be read this program
 
-    mov bx, 0x4105                      ; color
+; check existant of VBE
+    mov ax, 0x9000
+    mov es, ax
+    mov di, 0
+    mov ax, 0x4f00
+    int 0x10
+    cmp ax, 0x004f
+    jne scrn320
+
+; check VBE version
+    mov ax, [es: di+4]
+    cmp ax, 0x0200
+    jb scrn320
+
+; get screen info
+    mov cx, VBEMODE
+    mov ax, 0x4f01
+    int 0x10
+    cmp ax, 0x004f
+    jne scrn320
+
+; check screen info
+    cmp byte [es: di+0x19], 8
+    jne scrn320
+    cmp byte [es: di+0x1b], 4
+    jne scrn320
+    mov ax, [es: di]
+    and ax, 0x0080
+    jz scrn320
+
+; change mode
+    mov bx, VBEMODE+0x4000              ; color
     mov ax, 0x4f02
     int 0x10
     mov byte [VMODE], 8                 ; record screen mode
-    mov word [SCRNX], 1024
-    mov word [SCRNY], 768
-    mov dword [VRAM], 0xfd000000
+    mov ax, [es: di+0x12]
+    mov [SCRNX], ax
+    mov ax, [es: di+0x14]
+    mov [SCRNY], ax
+    mov eax, [es: di+0x28]
+    mov [VRAM], eax
+    jmp keystatus
 
+scrn320:
+    mov al, 0x13
+    mov ah, 0x00
+    int 0x10
+    mov byte [VMODE], 8
+    mov word [SCRNX], 320
+    mov word [SCRNY], 200
+    mov dword [VRAM], 0x000a0000
+
+
+keystatus:
 ; get status of keyboard from bios
-
     mov ah, 0x02
     int 0x16                            ; keyboard-bios
     mov [LEDS], al
