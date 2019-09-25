@@ -1,12 +1,12 @@
 import util
 
 const
-  ADR_IDT* = 0x0026f800
-  LIMIT_IDT* = 0x000007ff
-  ADR_GDT* = 0x00270000
-  LIMIT_GDT* = 0x0000ffff
-  ADR_BOTPAK* = 0x00280000
-  LIMIT_BOTPAK* = 0x0007ffff
+  ADR_IDT* = 0x0026_f800
+  LIMIT_IDT* = 0x0000_07ff
+  ADR_GDT* = 0x0027_0000
+  LIMIT_GDT* = 0x0000_ffff
+  ADR_BOTPAK* = 0x0028_0000
+  LIMIT_BOTPAK* = 0x0007_ffff
   AR_DATA32_RW* = 0x4092
   AR_CODE32_ER* = 0x409a
   AR_INTGATE32* = 0x008e
@@ -36,7 +36,7 @@ const
   KEYCMD_SENDTO_MOUSE* = 0xd4
   MOUSECMD_ENABLE* = 0xf4
 
-  MEMORY_ADDRESS* = 0x003c0000
+  MEMORY_ADDRESS* = 0x003c_0000
 
   table_rgb*: array[16*3, uint8] = [
     0x00'u8, 0x00'u8, 0x00'u8,  # black
@@ -81,6 +81,7 @@ type
     Keyboard
     Mouse
     Timer
+    MultiTaskTimer
 
   FifoDataType* = uint8
   FifoType* = tuple

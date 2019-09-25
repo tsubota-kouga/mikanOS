@@ -43,3 +43,6 @@ proc status*[T](this: Fifo[T]): Status =
     else:
       Status.Got
 
+proc freesize*[T](this: Fifo[T]): int =
+  this.free
+

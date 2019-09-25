@@ -113,3 +113,26 @@ proc store_cr0*(cr0: cint) {.asmfunc.} =
     ret
   """
 
+proc load_tr*(tr: cint) {.asmfunc.} =
+  asm """
+    ltr 4(%esp)
+    ret
+  """
+
+proc farjmp*(eip, cs: cint) {.asmfunc.} =
+  asm """
+    ljmp 4(%esp)
+    ret
+    """
+
+proc taskswitch4*() {.asmfunc.} =
+  asm """
+    ljmpl $4*8, $0
+    ret
+  """
+
+proc taskswitch3*() {.asmfunc.} =
+  asm """
+    ljmpl $3*8, $0
+    ret
+  """

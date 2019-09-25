@@ -3,7 +3,7 @@ import low_layer
 import util
 
 type
-  SegmentDescripter = object
+  SegmentDescripter* = object
     limit_low, base_low: int16
     base_mid, access_right: int8
     limit_high, base_high: int8
@@ -85,7 +85,7 @@ proc asm_inthandler2c() {.asmNoStackFrame.} =
     iret
   """
 
-proc set(sd: ptr SegmentDescripter, limit, base, ar: cint)
+proc set*(sd: ptr SegmentDescripter, limit, base, ar: cint)
 proc set(gd: ptr GateDescripter, offset, selector, ar: cint)
 
 proc init_gdtidt*() =

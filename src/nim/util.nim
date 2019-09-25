@@ -9,7 +9,7 @@ proc `+`*[T](p: ArithmeticPtr[T], idx: int): ptr T =
   cast[ptr T](cast[int](p) + idx*sizeof(T))
 
 proc `+`*[T](p: ptr T, idx: int): ptr T =
-  cast[ptr T](cast[int](p) + idx * sizeof(T)) 
+  cast[ptr T](cast[int](p) + idx * sizeof(T))
 proc num2hexstr*[T](cstr: var cstring, size: int or cint, num: T) {.deprecated.} =
   var num = num
   var cnt = 0
