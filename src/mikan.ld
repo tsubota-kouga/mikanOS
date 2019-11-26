@@ -16,12 +16,20 @@ SECTIONS {
         LONG(24 * 1024)
     }
 
-    .text : { *(.text) }
+    .text : {
+        *(.text)
+        *(.text.*)
+    }
     .data 0x310000 : AT ( ADDR(.text) + SIZEOF(.text) ) {
         *(.data)
         *(.rodata*)
+        *(.rodata.*)
         *(.bss)
     }
 
-    /DISCARD/ : { *(.eh_frame) }
+    /DISCARD/ : {
+        *(.eh_frame)
+        *(.comment)
+        *(.note.*)
+    }
 }
